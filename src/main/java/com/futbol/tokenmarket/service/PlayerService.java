@@ -113,7 +113,7 @@ public class PlayerService {
     private String getCompetitionIdByName(String leagueName) {
         Map<String, String> leagueMap = new HashMap<>();
         leagueMap.put("Premier League", "PL");
-        leagueMap.put("La Liga", "SA");
+        leagueMap.put("La Liga", "PD");
         leagueMap.put("Serie A", "SA");
         leagueMap.put("Bundesliga", "BL1");
         leagueMap.put("Ligue 1", "FL1");
