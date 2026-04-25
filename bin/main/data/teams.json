@@ -1,76 +1,4 @@
 [ {
-  "name" : "Bayern Munich",
-  "url" : "https://www.whoscored.com/teams/37/show/germany-bayern-munich",
-  "league" : "Bundesliga"
-}, {
-  "name" : "RB Leipzig",
-  "url" : "https://www.whoscored.com/teams/7614/show/germany-rb-leipzig",
-  "league" : "Bundesliga"
-}, {
-  "name" : "VfB Stuttgart",
-  "url" : "https://www.whoscored.com/teams/41/show/germany-vfb-stuttgart",
-  "league" : "Bundesliga"
-}, {
-  "name" : "Borussia Dortmund",
-  "url" : "https://www.whoscored.com/teams/44/show/germany-borussia-dortmund",
-  "league" : "Bundesliga"
-}, {
-  "name" : "Hoffenheim",
-  "url" : "https://www.whoscored.com/teams/1211/show/germany-hoffenheim",
-  "league" : "Bundesliga"
-}, {
-  "name" : "Bayer Leverkusen",
-  "url" : "https://www.whoscored.com/teams/36/show/germany-bayer-leverkusen",
-  "league" : "Bundesliga"
-}, {
-  "name" : "Eintracht Frankfurt",
-  "url" : "https://www.whoscored.com/teams/45/show/germany-eintracht-frankfurt",
-  "league" : "Bundesliga"
-}, {
-  "name" : "Freiburg",
-  "url" : "https://www.whoscored.com/teams/50/show/germany-freiburg",
-  "league" : "Bundesliga"
-}, {
-  "name" : "Borussia M.Gladbach",
-  "url" : "https://www.whoscored.com/teams/134/show/germany-borussia-m-gladbach",
-  "league" : "Bundesliga"
-}, {
-  "name" : "Mainz 05",
-  "url" : "https://www.whoscored.com/teams/219/show/germany-mainz-05",
-  "league" : "Bundesliga"
-}, {
-  "name" : "FC Koln",
-  "url" : "https://www.whoscored.com/teams/282/show/germany-fc-koln",
-  "league" : "Bundesliga"
-}, {
-  "name" : "Werder Bremen",
-  "url" : "https://www.whoscored.com/teams/42/show/germany-werder-bremen",
-  "league" : "Bundesliga"
-}, {
-  "name" : "Hamburger SV",
-  "url" : "https://www.whoscored.com/teams/38/show/germany-hamburger-sv",
-  "league" : "Bundesliga"
-}, {
-  "name" : "Wolfsburg",
-  "url" : "https://www.whoscored.com/teams/33/show/germany-wolfsburg",
-  "league" : "Bundesliga"
-}, {
-  "name" : "Augsburg",
-  "url" : "https://www.whoscored.com/teams/1730/show/germany-augsburg",
-  "league" : "Bundesliga"
-}, {
-  "name" : "Union Berlin",
-  "url" : "https://www.whoscored.com/teams/796/show/germany-union-berlin",
-  "league" : "Bundesliga"
-}, {
-  "name" : "St. Pauli",
-  "url" : "https://www.whoscored.com/teams/283/show/germany-st-pauli",
-  "league" : "Bundesliga"
-}, {
-  "name" : "FC Heidenheim",
-  "url" : "https://www.whoscored.com/teams/4852/show/germany-fc-heidenheim",
-  "league" : "Bundesliga"
-}, {
   "name" : "Manchester City",
   "url" : "https://www.whoscored.com/teams/167/show/england-manchester-city",
   "league" : "Premier League"
@@ -150,4 +78,76 @@
   "name" : "Burnley",
   "url" : "https://www.whoscored.com/teams/184/show/england-burnley",
   "league" : "Premier League"
+}, {
+  "name" : "Bayern Munich",
+  "url" : "https://www.whoscored.com/teams/37/show/germany-bayern-munich",
+  "league" : "Bundesliga"
+}, {
+  "name" : "RB Leipzig",
+  "url" : "https://www.whoscored.com/teams/7614/show/germany-rb-leipzig",
+  "league" : "Bundesliga"
+}, {
+  "name" : "VfB Stuttgart",
+  "url" : "https://www.whoscored.com/teams/41/show/germany-vfb-stuttgart",
+  "league" : "Bundesliga"
+}, {
+  "name" : "Borussia Dortmund",
+  "url" : "https://www.whoscored.com/teams/44/show/germany-borussia-dortmund",
+  "league" : "Bundesliga"
+}, {
+  "name" : "Hoffenheim",
+  "url" : "https://www.whoscored.com/teams/1211/show/germany-hoffenheim",
+  "league" : "Bundesliga"
+}, {
+  "name" : "Bayer Leverkusen",
+  "url" : "https://www.whoscored.com/teams/36/show/germany-bayer-leverkusen",
+  "league" : "Bundesliga"
+}, {
+  "name" : "Eintracht Frankfurt",
+  "url" : "https://www.whoscored.com/teams/45/show/germany-eintracht-frankfurt",
+  "league" : "Bundesliga"
+}, {
+  "name" : "Freiburg",
+  "url" : "https://www.whoscored.com/teams/50/show/germany-freiburg",
+  "league" : "Bundesliga"
+}, {
+  "name" : "Borussia M.Gladbach",
+  "url" : "https://www.whoscored.com/teams/134/show/germany-borussia-m-gladbach",
+  "league" : "Bundesliga"
+}, {
+  "name" : "Mainz 05",
+  "url" : "https://www.whoscored.com/teams/219/show/germany-mainz-05",
+  "league" : "Bundesliga"
+}, {
+  "name" : "FC Koln",
+  "url" : "https://www.whoscored.com/teams/282/show/germany-fc-koln",
+  "league" : "Bundesliga"
+}, {
+  "name" : "Werder Bremen",
+  "url" : "https://www.whoscored.com/teams/42/show/germany-werder-bremen",
+  "league" : "Bundesliga"
+}, {
+  "name" : "Hamburger SV",
+  "url" : "https://www.whoscored.com/teams/38/show/germany-hamburger-sv",
+  "league" : "Bundesliga"
+}, {
+  "name" : "Wolfsburg",
+  "url" : "https://www.whoscored.com/teams/33/show/germany-wolfsburg",
+  "league" : "Bundesliga"
+}, {
+  "name" : "Augsburg",
+  "url" : "https://www.whoscored.com/teams/1730/show/germany-augsburg",
+  "league" : "Bundesliga"
+}, {
+  "name" : "Union Berlin",
+  "url" : "https://www.whoscored.com/teams/796/show/germany-union-berlin",
+  "league" : "Bundesliga"
+}, {
+  "name" : "St. Pauli",
+  "url" : "https://www.whoscored.com/teams/283/show/germany-st-pauli",
+  "league" : "Bundesliga"
+}, {
+  "name" : "FC Heidenheim",
+  "url" : "https://www.whoscored.com/teams/4852/show/germany-fc-heidenheim",
+  "league" : "Bundesliga"
 } ]

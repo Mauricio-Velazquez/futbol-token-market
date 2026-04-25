@@ -128,6 +128,33 @@ public class PlayerController {
         }
     }
 
+    @PostMapping("/scrape-from-whoscored/{league}")
+    @Operation(summary = "Scrapear jugadores de WhoScored",
+               description = "Para cada equipo guardado en la BD de la liga indicada, navega a su página en WhoScored y extrae los jugadores con sus estadísticas (goles, asistencias, rating, etc.). Requiere haber ejecutado primero GET /api/players/team-urls/{league}.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Jugadores scrapeados y guardados exitosamente"),
+            @ApiResponse(responseCode = "400", description = "No hay equipos guardados para esa liga"),
+            @ApiResponse(responseCode = "500", description = "Error en el scraping")
+    })
+    public ResponseEntity<LoadLeagueResponse> scrapePlayersFromWhoScored(
+            @Parameter(description = "Nombre de la liga", example = "Bundesliga", required = true)
+            @PathVariable String league) {
+        try {
+            List<Player> players = service.scrapePlayersFromWhoScored(league);
+            return ResponseEntity.ok(new LoadLeagueResponse(
+                    "Jugadores scrapeados exitosamente desde WhoScored",
+                    league,
+                    players.size(),
+                    players
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new LoadLeagueResponse("Error: " + e.getMessage(), league, 0, null));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(new LoadLeagueResponse("Error en el scraping: " + e.getMessage(), league, 0, null));
+        }
+    }
+
     @PostMapping("/enrich-with-whoscored/{league}")
     @Operation(summary = "Enriquecer jugadores de una liga con estadísticas de WhoScored",
                description = "Obtiene datos de rendimiento (goles, asistencias, tiros, etc.) desde WhoScored para todos los jugadores de una liga y los almacena localmente")

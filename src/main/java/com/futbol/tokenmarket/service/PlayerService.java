@@ -111,6 +111,19 @@ public class PlayerService {
         return teamRepository.saveTeamsForLeague(leagueName, teams);
     }
 
+    public List<Player> scrapePlayersFromWhoScored(String leagueName) throws IOException {
+        List<Team> teams = teamRepository.findByLeague(leagueName);
+        if (teams.isEmpty()) {
+            throw new IllegalArgumentException("No hay equipos guardados para la liga: " + leagueName +
+                ". Ejecutá primero GET /api/players/team-urls/" + leagueName);
+        }
+        List<Player> players = whoScoredScraperService.scrapePlayersFromTeams(teams);
+        if (!players.isEmpty()) {
+            repository.savePlayersForLeague(leagueName, players);
+        }
+        return players;
+    }
+
     public List<Player> enrichPlayersWithWhoScoredStats(String league) throws IOException {
         List<Player> playersToEnrich = repository.findByLeague(league);
 
