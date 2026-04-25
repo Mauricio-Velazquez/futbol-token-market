@@ -1,8 +1,10 @@
 package com.futbol.tokenmarket.service;
 
-import com.futbol.tokenmarket.model.Player;
 import com.futbol.tokenmarket.model.LeagueStats;
+import com.futbol.tokenmarket.model.Player;
+import com.futbol.tokenmarket.model.Team;
 import com.futbol.tokenmarket.repository.PlayerRepository;
+import com.futbol.tokenmarket.repository.TeamRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,16 +19,21 @@ import java.util.stream.Collectors;
 public class PlayerService {
 
     private final PlayerRepository repository;
+    private final TeamRepository teamRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final WhoScoredScraperService whoScoredScraperService;
     private final String apiToken;
     private final String apiBaseUrl = "https://api.football-data.org/v4";
 
-    public PlayerService(PlayerRepository repository, RestTemplate restTemplate, ObjectMapper objectMapper,
+    public PlayerService(PlayerRepository repository,
+                         TeamRepository teamRepository,
+                         RestTemplate restTemplate,
+                         ObjectMapper objectMapper,
                          WhoScoredScraperService whoScoredScraperService,
                          @Value("${football.data.api.token}") String apiToken) {
         this.repository = repository;
+        this.teamRepository = teamRepository;
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
         this.whoScoredScraperService = whoScoredScraperService;
@@ -41,7 +48,7 @@ public class PlayerService {
 
         String url = apiBaseUrl + "/competitions/" + competitionId + "/teams";
         String response = restTemplate.getForObject(url, String.class);
-        
+
         List<Player> playersToSave = new ArrayList<>();
         JsonNode rootNode = objectMapper.readTree(response);
         JsonNode teamsNode = rootNode.get("teams");
@@ -49,7 +56,6 @@ public class PlayerService {
         if (teamsNode != null && teamsNode.isArray()) {
             for (JsonNode team : teamsNode) {
                 String teamName = team.get("name").asText();
-                String teamId = team.get("id").asText();
                 JsonNode squareNode = team.get("squad");
 
                 if (squareNode != null && squareNode.isArray()) {
@@ -63,7 +69,6 @@ public class PlayerService {
                         p.setTeam(teamName);
                         p.setNationality(player.get("nationality") != null ? player.get("nationality").asText() : "Unknown");
                         p.setDateOfBirth(player.get("dateOfBirth") != null ? player.get("dateOfBirth").hashCode() : null);
-
                         playersToSave.add(p);
                     }
                 }
@@ -79,11 +84,10 @@ public class PlayerService {
 
     public List<LeagueStats> getLeagueStats() throws IOException {
         List<Player> allPlayers = repository.findAll();
-        
+
         return allPlayers.stream()
                 .collect(Collectors.groupingBy(Player::getLeague, Collectors.counting()))
-                .entrySet()
-                .stream()
+                .entrySet().stream()
                 .map(entry -> new LeagueStats(entry.getKey(), entry.getValue().intValue()))
                 .sorted(Comparator.comparing(LeagueStats::getLeague))
                 .toList();
@@ -97,16 +101,24 @@ public class PlayerService {
         return repository.findByLeague(league);
     }
 
+    public List<Team> scrapeTeamUrls(String leagueName) throws IOException {
+        Map<String, String> scraped = whoScoredScraperService.scrapeTeamUrls(leagueName);
+
+        List<Team> teams = scraped.entrySet().stream()
+                .map(e -> new Team(e.getKey(), e.getValue(), leagueName))
+                .toList();
+
+        return teamRepository.saveTeamsForLeague(leagueName, teams);
+    }
+
     public List<Player> enrichPlayersWithWhoScoredStats(String league) throws IOException {
         List<Player> playersToEnrich = repository.findByLeague(league);
-        
+
         for (Player player : playersToEnrich) {
             whoScoredScraperService.enrichPlayerWithStats(player);
         }
-        
-        // Guardar los jugadores enriquecidos
+
         repository.savePlayersForLeague(league, playersToEnrich);
-        
         return playersToEnrich;
     }
 
@@ -119,7 +131,6 @@ public class PlayerService {
         leagueMap.put("Ligue 1", "FL1");
         leagueMap.put("Champions League", "CL");
         leagueMap.put("Europa League", "EL");
-
         return leagueMap.get(leagueName);
     }
 }

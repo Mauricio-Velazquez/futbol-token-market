@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.futbol.tokenmarket.model.Team;
 import java.io.IOException;
 import java.util.List;
 
@@ -102,6 +103,28 @@ public class PlayerController {
             return ResponseEntity.ok(service.getPlayersByLeague(league));
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/team-urls/{league}")
+    @Operation(summary = "Obtener URLs de equipos desde WhoScored",
+               description = "Scrapea WhoScored con Selenium para obtener los URLs de todos los equipos de una liga. Ligas soportadas: Premier League, La Liga, Serie A, Bundesliga, Ligue 1")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "URLs obtenidos exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Liga no soportada"),
+            @ApiResponse(responseCode = "500", description = "Error en el scraping")
+    })
+    public ResponseEntity<List<Team>> getTeamUrls(
+            @Parameter(description = "Nombre de la liga", example = "Bundesliga", required = true)
+            @PathVariable String league) {
+        try {
+            List<Team> teams = service.scrapeTeamUrls(league);
+            return ResponseEntity.ok(teams);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 
