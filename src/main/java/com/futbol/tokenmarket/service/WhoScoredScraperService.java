@@ -1,6 +1,7 @@
 package com.futbol.tokenmarket.service;
 
 import com.futbol.tokenmarket.model.Player;
+import com.futbol.tokenmarket.model.PlayerMatchStats;
 import com.futbol.tokenmarket.model.Team;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import org.openqa.selenium.By;
@@ -217,6 +218,7 @@ public class WhoScoredScraperService {
                 
                 Player p = new Player();
                 p.setId(playerId);
+                p.setUrl(parts[0].trim());
                 // Limpiar nombre: remover números del inicio (ej: "1Erling Haaland" -> "Erling Haaland")
                 String cleanName = parts[1].trim().replaceAll("^\\d+\\s*", "").trim();
                 p.setName(cleanName);
@@ -300,15 +302,235 @@ public class WhoScoredScraperService {
         }
     }
 
+    // Extrae filas del primer <table> dentro del div indicado, usando data-stat-name de los <th>
+    private static final String EXTRACT_TAB_FN =
+        "function extractTab(divId) {" +
+        "  var container = document.querySelector('#' + divId);" +
+        "  if (!container) return [];" +
+        "  var table = container.querySelector('table');" +
+        "  if (!table) return [];" +
+        "  var ths = Array.from(table.querySelectorAll('thead th'));" +
+        "  var cols = [];" +
+        "  ths.forEach(function(th, i) {" +
+        "    var stat = th.getAttribute('data-stat-name');" +
+        "    if (!stat && th.textContent.trim() === 'Position') stat = 'position';" +
+        "    if (stat) cols.push({i: i, stat: stat});" +
+        "  });" +
+        "  return Array.from(table.querySelectorAll('tbody tr')).map(function(row) {" +
+        "    var link = row.querySelector('a.player-match-link');" +
+        "    if (!link) return null;" +
+        "    var cells = Array.from(row.querySelectorAll('td'));" +
+        "    var opp = Array.from(link.childNodes)" +
+        "      .filter(function(n){return n.nodeType===3;})" +
+        "      .map(function(n){return n.textContent.trim();}).join('');" +
+        "    var parts = [link.href, opp];" +
+        "    cols.forEach(function(col) {" +
+        "      var val = cells[col.i] ? cells[col.i].textContent.trim().replace(/\\s+/g,' ') : '-';" +
+        "      parts.push(col.stat + '=' + val);" +
+        "    });" +
+        "    return parts.join('|||');" +
+        "  }).filter(Boolean);" +
+        "}";
+
+    public List<PlayerMatchStats> scrapePlayerMatchStats(
+            Player player, Set<String> existingMatchIds) {
+
+        List<PlayerMatchStats> results = new ArrayList<>();
+        if (player.getUrl() == null || player.getUrl().isBlank()) {
+            System.out.println("[WhoScored] " + player.getName() + " no tiene URL, se omite");
+            return results;
+        }
+
+        String matchStatsUrl = player.getUrl().replace("/show/", "/matchstatistics/");
+        WebDriver driver = createDriver();
+        try {
+            driver.get(matchStatsUrl);
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.id("top-player-stats-summary-grid")));
+
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+
+            // Si el jugador ya tiene historial, solo necesitamos el último partido
+            boolean latestOnly = !existingMatchIds.isEmpty();
+
+            // 1. Summary tab — crea los objetos base
+            List<String> summaryRows = pollTab(js, "player-matches-stats-summary", player.getName(), "Summary");
+            if (latestOnly) summaryRows = summaryRows.isEmpty() ? summaryRows : summaryRows.subList(0, 1);
+
+            // Early exit: si el último partido ya está en la DB no hace falta clickear más tabs
+            if (!summaryRows.isEmpty()) {
+                String latestMatchId = extractMatchIdFromUrl(summaryRows.get(0).split("\\|\\|\\|", 2)[0].trim());
+                if (existingMatchIds.contains(latestMatchId)) {
+                    System.out.println("[WhoScored] " + player.getName() + " - último partido ya en DB, se omite");
+                    return results;
+                }
+            }
+
+            Map<String, PlayerMatchStats> byMatchUrl = new LinkedHashMap<>();
+            for (String row : summaryRows) {
+                String[] p = row.split("\\|\\|\\|", -1);
+                if (p.length < 3) continue;
+                String matchUrl = p[0].trim();
+                String matchId  = extractMatchIdFromUrl(matchUrl);
+                if (existingMatchIds.contains(matchId)) continue;
+
+                PlayerMatchStats s = new PlayerMatchStats();
+                s.setId(matchId + "_" + player.getId());
+                s.setMatchId(matchId);
+                s.setPlayerId(player.getId());
+                s.setMatchUrl(matchUrl);
+                s.setOpponent(p[1].trim());
+                applyStatPairs(s, p, 2);
+                byMatchUrl.put(matchUrl, s);
+            }
+
+            // 2–4. Defensive / Offensive / Passing — enriquece los mismos objetos
+            // tabHref, tabDivId, tabName
+            String[][] tabs = {
+                {"a[href='#player-matches-stats-defensive']", "player-matches-stats-defensive", "Defensive"},
+                {"a[href='#player-matches-stats-offensive']", "player-matches-stats-offensive", "Offensive"},
+                {"a[href='#player-matches-stats-passing']",   "player-matches-stats-passing",   "Passing"}
+            };
+            for (String[] tab : tabs) {
+                try {
+                    clickTab(driver, wait, js, tab[0], tab[1]);
+                    List<String> tabRows = pollTab(js, tab[1], player.getName(), tab[2]);
+                    if (latestOnly) tabRows = tabRows.isEmpty() ? tabRows : tabRows.subList(0, 1);
+                    for (String row : tabRows) {
+                        String[] p = row.split("\\|\\|\\|", -1);
+                        if (p.length < 3) continue;
+                        PlayerMatchStats s = byMatchUrl.get(p[0].trim());
+                        if (s != null) applyStatPairs(s, p, 2);
+                    }
+                } catch (Exception e) {
+                    System.err.println("[WhoScored] Tab " + tab[2] + " de " + player.getName() + ": " + e.getMessage());
+                }
+            }
+
+            results.addAll(byMatchUrl.values());
+            System.out.println("[WhoScored] " + player.getName() + " - partidos nuevos: " + results.size());
+        } catch (Exception e) {
+            System.err.println("[WhoScored] Error scrapeando partidos de " + player.getName() + ": " + e.getMessage());
+        } finally {
+            driver.quit();
+        }
+        return results;
+    }
+
+    private void clickTab(WebDriver driver, WebDriverWait wait, JavascriptExecutor js,
+                          String linkCss, String tabDivId) throws Exception {
+        // Eliminar overlays de ads con z-index altísimo que bloquean el click
+        js.executeScript(
+            "document.querySelectorAll('[style*=\"z-index: 2147483647\"],[style*=\"z-index:2147483647\"]')" +
+            ".forEach(function(n){ n.remove(); });");
+
+        WebElement el = driver.findElement(By.cssSelector(linkCss));
+        js.executeScript("arguments[0].scrollIntoView({block:'center'});", el);
+        try { Thread.sleep(300); } catch (InterruptedException ignored) {}
+
+        try {
+            el.click();
+        } catch (Exception ex) {
+            // Fallback: click via JS con referencia al elemento (no depende de coordenadas)
+            js.executeScript("arguments[0].click();", el);
+        }
+
+        // Esperar a que cargue al menos una fila en el div del tab
+        wait.until(ExpectedConditions.presenceOfElementLocated(
+            By.cssSelector("#" + tabDivId + " tbody tr")));
+    }
+
+    private List<String> pollTab(JavascriptExecutor js, String tableId, String playerName, String tabName) {
+        String script = EXTRACT_TAB_FN + " return extractTab('" + tableId + "');";
+        int prevCount = -1;
+        List<String> captured = List.of();
+        for (int i = 0; i < 20; i++) {
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            @SuppressWarnings("unchecked")
+            List<String> items = (List<String>) js.executeScript(script);
+            int count = items != null ? items.size() : 0;
+            System.out.println("[WhoScored] " + playerName + " [" + tabName + "] - filas: " + count);
+            if (items != null && count > 0) captured = items;
+            if (count > 0 && count == prevCount) break;
+            prevCount = count;
+        }
+        return captured;
+    }
+
+    private void applyStatPairs(PlayerMatchStats s, String[] parts, int from) {
+        for (int i = from; i < parts.length; i++) {
+            int eq = parts[i].indexOf('=');
+            if (eq < 0) continue;
+            mapStat(s, parts[i].substring(0, eq).trim(), parts[i].substring(eq + 1).trim());
+        }
+    }
+
+    private void mapStat(PlayerMatchStats s, String key, String val) {
+        switch (key) {
+            // Summary
+            case "matchStartTime"                       -> s.setDate(val);
+            case "position"                             -> s.setPosition(val);
+            case "minsPlayed"                           -> trySetIntStat(s::setMinutesPlayed, val);
+            case "goalTotal"                            -> trySetDoubleStat(s::setGoals, val);
+            case "assist"                               -> trySetDoubleStat(s::setAssists, val);
+            case "yellowCard"                           -> trySetIntStat(s::setYellowCards, val);
+            case "redCard"                              -> trySetIntStat(s::setRedCards, val);
+            case "shotsTotal"                           -> trySetDoubleStat(s::setShots, val);
+            case "passSuccess"                          -> trySetDoubleStat(s::setPassSuccess, val);
+            case "duelAerialWon"                        -> trySetDoubleStat(s::setAerialsWon, val);
+            case "Rating"                               -> trySetDoubleStat(s::setRating, val);
+            // Defensive
+            case "tackleTotal", "tackleTotalAttempted"  -> trySetDoubleStat(s::setTackles, val);
+            case "interceptionAll"                      -> trySetDoubleStat(s::setInterceptions, val);
+            case "foulsTotal"                           -> trySetDoubleStat(s::setFoulsCommitted, val);
+            case "clearanceTotal"                       -> trySetDoubleStat(s::setClearances, val);
+            case "shotBlocked"                          -> trySetDoubleStat(s::setBlockedShots, val);
+            case "saveTotal", "saves"                   -> trySetDoubleStat(s::setSaves, val);
+            // Offensive
+            case "shotOnTarget", "shotsOnTarget"        -> trySetDoubleStat(s::setShotsOnTarget, val);
+            case "keyPassTotal"                         -> trySetDoubleStat(s::setKeyPasses, val);
+            case "dribbleWon"                           -> trySetDoubleStat(s::setDribblesWon, val);
+            case "foulsTaken"                           -> trySetDoubleStat(s::setFoulsWon, val);
+            case "offsideGiven"                         -> trySetDoubleStat(s::setOffsides, val);
+            // Passing
+            case "passTotal"                            -> trySetDoubleStat(s::setTotalPasses, val);
+            case "passLongBallTotal", "longBallTotal"   -> trySetDoubleStat(s::setLongBalls, val);
+            case "passCrossTotal", "crossTotal"         -> trySetDoubleStat(s::setCrosses, val);
+            case "passThroughBallTotal","throughBallTotal" -> trySetDoubleStat(s::setThroughBalls, val);
+        }
+    }
+
+    private String extractMatchIdFromUrl(String href) {
+        try {
+            String[] parts = href.split("/matches/");
+            if (parts.length > 1) return parts[1].split("/")[0];
+        } catch (Exception ignored) {}
+        return String.valueOf(Math.abs(href.hashCode()));
+    }
+
+    private void trySetIntStat(java.util.function.Consumer<Integer> setter, String val) {
+        try {
+            String clean = val.replaceAll("[^0-9]", "");
+            if (!clean.isEmpty()) setter.accept(Integer.parseInt(clean));
+        } catch (NumberFormatException ignored) {}
+    }
+
+    private void trySetDoubleStat(java.util.function.Consumer<Double> setter, String val) {
+        try {
+            String clean = val.replaceAll("[^0-9.]", "");
+            if (!clean.isEmpty()) setter.accept(Double.parseDouble(clean));
+        } catch (NumberFormatException ignored) {}
+    }
+
     public void enrichPlayerWithStats(Player player) {
         System.out.println("enrichPlayerWithStats: delegado a enriquecimiento en scrapePlayersFromTeams para " + player.getName());
     }
 
     private WebDriver createDriver() {
-        // WebDriverManager automatically downloads and manages ChromeDriver
-        WebDriverManager.chromedriver().setup();
+        System.setProperty("webdriver.chrome.driver", "/snap/bin/chromium.chromedriver");
 
         ChromeOptions options = new ChromeOptions();
+        options.setBinary("/usr/bin/chromium-browser");
         options.addArguments(
             "--headless=new",
             "--no-sandbox",
@@ -316,7 +538,7 @@ public class WhoScoredScraperService {
             "--disable-gpu",
             "--window-size=1920,1080",
             "--disable-blink-features=AutomationControlled",
-            "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+            "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
                 "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         );
         options.setExperimentalOption("excludeSwitches", List.of("enable-automation"));

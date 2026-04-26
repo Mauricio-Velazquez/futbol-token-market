@@ -2,7 +2,9 @@ package com.futbol.tokenmarket.service;
 
 import com.futbol.tokenmarket.model.LeagueStats;
 import com.futbol.tokenmarket.model.Player;
+import com.futbol.tokenmarket.model.PlayerMatchStats;
 import com.futbol.tokenmarket.model.Team;
+import com.futbol.tokenmarket.repository.PlayerMatchStatsRepository;
 import com.futbol.tokenmarket.repository.PlayerRepository;
 import com.futbol.tokenmarket.repository.TeamRepository;
 import org.springframework.stereotype.Service;
@@ -16,15 +18,18 @@ public class PlayerService {
 
     private final PlayerRepository repository;
     private final TeamRepository teamRepository;
+    private final PlayerMatchStatsRepository matchStatsRepository;
     private final WhoScoredScraperService whoScoredScraperService;
     private final PlayerJsonService playerJsonService;
 
     public PlayerService(PlayerRepository repository,
                          TeamRepository teamRepository,
+                         PlayerMatchStatsRepository matchStatsRepository,
                          WhoScoredScraperService whoScoredScraperService,
                          PlayerJsonService playerJsonService) {
         this.repository = repository;
         this.teamRepository = teamRepository;
+        this.matchStatsRepository = matchStatsRepository;
         this.whoScoredScraperService = whoScoredScraperService;
         this.playerJsonService = playerJsonService;
     }
@@ -56,6 +61,26 @@ public class PlayerService {
                 .toList();
 
         return teamRepository.saveTeamsForLeague(leagueName, teams);
+    }
+
+    public List<PlayerMatchStats> scrapeMatchStatsForLeague(String leagueName) throws IOException {
+        List<Player> players = repository.findByLeague(leagueName);
+        if (players.isEmpty()) {
+            throw new IllegalArgumentException("No hay jugadores guardados para la liga: " + leagueName +
+                ". Ejecutá primero POST /api/players/scrape-from-whoscored/" + leagueName);
+        }
+        List<PlayerMatchStats> allNew = new ArrayList<>();
+        for (Player player : players) {
+            Set<String> existing = matchStatsRepository.getExistingMatchIds(player.getId());
+            System.out.println("[PlayerService] " + player.getName() +
+                " - partidos existentes en DB: " + existing.size());
+            List<PlayerMatchStats> newStats = whoScoredScraperService.scrapePlayerMatchStats(player, existing);
+            if (!newStats.isEmpty()) {
+                matchStatsRepository.saveAll(newStats);
+                allNew.addAll(newStats);
+            }
+        }
+        return allNew;
     }
 
     public List<Player> scrapePlayersFromWhoScored(String leagueName) throws IOException {

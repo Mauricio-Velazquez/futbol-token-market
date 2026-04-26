@@ -2,6 +2,7 @@ package com.futbol.tokenmarket.controller;
 
 import com.futbol.tokenmarket.model.Player;
 import com.futbol.tokenmarket.model.LeagueStats;
+import com.futbol.tokenmarket.model.PlayerMatchStats;
 import com.futbol.tokenmarket.service.PlayerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -125,6 +126,47 @@ public class PlayerController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body(new LoadLeagueResponse("Error en el scraping: " + e.getMessage(), league, 0, null));
+        }
+    }
+
+    @PostMapping("/scrape-match-stats/{league}")
+    @Operation(summary = "Scrapear estadísticas partido a partido",
+               description = "Para cada jugador de la liga, navega a su página de Match Statistics en WhoScored y extrae los partidos que aún no están en la BD.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Estadísticas scrapeadas exitosamente"),
+            @ApiResponse(responseCode = "400", description = "No hay jugadores guardados para esa liga"),
+            @ApiResponse(responseCode = "500", description = "Error en el scraping")
+    })
+    public ResponseEntity<MatchStatsResponse> scrapeMatchStats(
+            @Parameter(description = "Nombre de la liga", example = "Bundesliga", required = true)
+            @PathVariable String league) {
+        try {
+            List<PlayerMatchStats> newStats = service.scrapeMatchStatsForLeague(league);
+            return ResponseEntity.ok(new MatchStatsResponse(
+                    "Estadísticas scrapeadas exitosamente",
+                    league,
+                    newStats.size(),
+                    newStats
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new MatchStatsResponse("Error: " + e.getMessage(), league, 0, null));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(new MatchStatsResponse("Error: " + e.getMessage(), league, 0, null));
+        }
+    }
+
+    public static class MatchStatsResponse {
+        public String message;
+        public String league;
+        public Integer newRecords;
+        public List<PlayerMatchStats> stats;
+
+        public MatchStatsResponse(String message, String league, Integer newRecords, List<PlayerMatchStats> stats) {
+            this.message = message;
+            this.league = league;
+            this.newRecords = newRecords;
+            this.stats = stats;
         }
     }
 

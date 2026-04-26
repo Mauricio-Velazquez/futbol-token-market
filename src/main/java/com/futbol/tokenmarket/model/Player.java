@@ -12,6 +12,7 @@ public class Player {
     private String team;
     private String nationality;
     private Integer dateOfBirth;
+    private String url;
 
     // Performance metrics
     private Integer minutes;
@@ -83,4 +84,7 @@ public class Player {
 
     public Double getRating() { return rating; }
     public void setRating(Double rating) { this.rating = rating; }
+
+    public String getUrl() { return url; }
+    public void setUrl(String url) { this.url = url; }
 }
