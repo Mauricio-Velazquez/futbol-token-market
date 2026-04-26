@@ -5,11 +5,7 @@ import com.futbol.tokenmarket.model.Player;
 import com.futbol.tokenmarket.model.Team;
 import com.futbol.tokenmarket.repository.PlayerRepository;
 import com.futbol.tokenmarket.repository.TeamRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.util.*;
@@ -20,66 +16,17 @@ public class PlayerService {
 
     private final PlayerRepository repository;
     private final TeamRepository teamRepository;
-    private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
     private final WhoScoredScraperService whoScoredScraperService;
-    private final String apiToken;
-    private final String apiBaseUrl = "https://api.football-data.org/v4";
+    private final PlayerJsonService playerJsonService;
 
     public PlayerService(PlayerRepository repository,
                          TeamRepository teamRepository,
-                         RestTemplate restTemplate,
-                         ObjectMapper objectMapper,
                          WhoScoredScraperService whoScoredScraperService,
-                         @Value("${football.data.api.token}") String apiToken) {
+                         PlayerJsonService playerJsonService) {
         this.repository = repository;
         this.teamRepository = teamRepository;
-        this.restTemplate = restTemplate;
-        this.objectMapper = objectMapper;
         this.whoScoredScraperService = whoScoredScraperService;
-        this.apiToken = apiToken;
-    }
-
-    public List<Player> loadPlayersFromLeague(String leagueName) throws IOException {
-        String competitionId = getCompetitionIdByName(leagueName);
-        if (competitionId == null) {
-            throw new IllegalArgumentException("Liga no encontrada: " + leagueName);
-        }
-
-        String url = apiBaseUrl + "/competitions/" + competitionId + "/teams";
-        String response = restTemplate.getForObject(url, String.class);
-
-        List<Player> playersToSave = new ArrayList<>();
-        JsonNode rootNode = objectMapper.readTree(response);
-        JsonNode teamsNode = rootNode.get("teams");
-
-        if (teamsNode != null && teamsNode.isArray()) {
-            for (JsonNode team : teamsNode) {
-                String teamName = team.get("name").asText();
-                JsonNode squareNode = team.get("squad");
-
-                if (squareNode != null && squareNode.isArray()) {
-                    for (JsonNode player : squareNode) {
-                        Player p = new Player();
-                        p.setId(player.get("id").asText());
-                        p.setName(player.get("name").asText());
-                        p.setPosition(player.get("position") != null ? player.get("position").asText() : "Unknown");
-                        p.setJerseyNumber(player.get("shirtNumber") != null ? player.get("shirtNumber").asInt() : null);
-                        p.setLeague(leagueName);
-                        p.setTeam(teamName);
-                        p.setNationality(player.get("nationality") != null ? player.get("nationality").asText() : "Unknown");
-                        p.setDateOfBirth(player.get("dateOfBirth") != null ? player.get("dateOfBirth").hashCode() : null);
-                        playersToSave.add(p);
-                    }
-                }
-            }
-        }
-
-        if (!playersToSave.isEmpty()) {
-            repository.savePlayersForLeague(leagueName, playersToSave);
-        }
-
-        return playersToSave;
+        this.playerJsonService = playerJsonService;
     }
 
     public List<LeagueStats> getLeagueStats() throws IOException {
@@ -120,30 +67,10 @@ public class PlayerService {
         List<Player> players = whoScoredScraperService.scrapePlayersFromTeams(teams);
         if (!players.isEmpty()) {
             repository.savePlayersForLeague(leagueName, players);
+            // Guardar también en JSON (agrega sin sobrescribir)
+            playerJsonService.appendPlayersToJson(players);
+            System.out.println("[PlayerService] Guardados " + players.size() + " jugadores en players.json");
         }
         return players;
-    }
-
-    public List<Player> enrichPlayersWithWhoScoredStats(String league) throws IOException {
-        List<Player> playersToEnrich = repository.findByLeague(league);
-
-        for (Player player : playersToEnrich) {
-            whoScoredScraperService.enrichPlayerWithStats(player);
-        }
-
-        repository.savePlayersForLeague(league, playersToEnrich);
-        return playersToEnrich;
-    }
-
-    private String getCompetitionIdByName(String leagueName) {
-        Map<String, String> leagueMap = new HashMap<>();
-        leagueMap.put("Premier League", "PL");
-        leagueMap.put("La Liga", "PD");
-        leagueMap.put("Serie A", "SA");
-        leagueMap.put("Bundesliga", "BL1");
-        leagueMap.put("Ligue 1", "FL1");
-        leagueMap.put("Champions League", "CL");
-        leagueMap.put("Europa League", "EL");
-        return leagueMap.get(leagueName);
     }
 }
