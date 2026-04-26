@@ -350,8 +350,7 @@ public class WhoScoredScraperService {
 
             JavascriptExecutor js = (JavascriptExecutor) driver;
 
-            // Si el jugador ya tiene historial, solo necesitamos el último partido
-            boolean latestOnly = !existingMatchIds.isEmpty();
+            boolean latestOnly = true;
 
             // 1. Summary tab — crea los objetos base
             List<String> summaryRows = pollTab(js, "player-matches-stats-summary", player.getName(), "Summary");
