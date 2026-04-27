@@ -1167,7 +1167,7 @@
   "keyPasses" : null,
   "dribbles" : null,
   "tackles" : null,
-  "rating" : 7.03
+  "rating" : 7.02
 }, {
   "id" : "ws_236506",
   "name" : "Serhou Guirassy",
@@ -1185,7 +1185,7 @@
   "keyPasses" : null,
   "dribbles" : null,
   "tackles" : null,
-  "rating" : 7.01
+  "rating" : 7.0
 }, {
   "id" : "ws_320436",
   "name" : "Julian Ryerson",
@@ -1383,7 +1383,7 @@
   "keyPasses" : null,
   "dribbles" : null,
   "tackles" : null,
-  "rating" : 6.58
+  "rating" : 6.59
 }, {
   "id" : "ws_71824",
   "name" : "Pascal Groß",
@@ -4679,24 +4679,6 @@
   "tackles" : null,
   "rating" : 6.68
 }, {
-  "id" : "ws_227655",
-  "name" : "Lucas Höler",
-  "position" : "AM(CLR),FW",
-  "jerseyNumber" : null,
-  "league" : "Bundesliga",
-  "team" : "Freiburg",
-  "nationality" : null,
-  "dateOfBirth" : null,
-  "url" : "https://www.whoscored.com/players/227655/show/lucas-h%C3%B6ler",
-  "minutes" : 1879,
-  "goals" : 3.0,
-  "assists" : 1.0,
-  "shots" : null,
-  "keyPasses" : null,
-  "dribbles" : null,
-  "tackles" : null,
-  "rating" : 6.62
-}, {
   "id" : "ws_407222",
   "name" : "Igor Matanovic",
   "position" : "FW",
@@ -4708,6 +4690,24 @@
   "url" : "https://www.whoscored.com/players/407222/show/igor-matanovic",
   "minutes" : 1353,
   "goals" : 8.0,
+  "assists" : 1.0,
+  "shots" : null,
+  "keyPasses" : null,
+  "dribbles" : null,
+  "tackles" : null,
+  "rating" : 6.62
+}, {
+  "id" : "ws_227655",
+  "name" : "Lucas Höler",
+  "position" : "AM(CLR),FW",
+  "jerseyNumber" : null,
+  "league" : "Bundesliga",
+  "team" : "Freiburg",
+  "nationality" : null,
+  "dateOfBirth" : null,
+  "url" : "https://www.whoscored.com/players/227655/show/lucas-h%C3%B6ler",
+  "minutes" : 1879,
+  "goals" : 3.0,
   "assists" : 1.0,
   "shots" : null,
   "keyPasses" : null,
@@ -4821,7 +4821,7 @@
   "keyPasses" : null,
   "dribbles" : null,
   "tackles" : null,
-  "rating" : 6.46
+  "rating" : 6.45
 }, {
   "id" : "ws_486776",
   "name" : "Philipp Treu",
@@ -4857,7 +4857,7 @@
   "keyPasses" : null,
   "dribbles" : null,
   "tackles" : null,
-  "rating" : 6.37
+  "rating" : 6.36
 }, {
   "id" : "ws_422716",
   "name" : "Patrick Osterhage",
