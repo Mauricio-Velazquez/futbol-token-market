@@ -44,7 +44,8 @@ jobs:
           SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
           SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
         run: |
-          ./gradlew sonarqube \
+          ./gradlew sonar \
             -Dsonar.token="$SONAR_TOKEN" \
             -Dsonar.projectKey="$SONAR_PROJECT_KEY" \
-            -Dsonar.organization="$SONAR_ORGANIZATION"
+            -Dsonar.organization="$SONAR_ORGANIZATION" \
+            -Dsonar.host.url=https://sonarcloud.io
