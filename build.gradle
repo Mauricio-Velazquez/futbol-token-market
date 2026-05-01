@@ -2,6 +2,8 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.4.4'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco'
+    id 'org.sonarqube' version '5.1.0.4882'
 }
 
 group = 'com.futbol'
@@ -16,6 +18,8 @@ java {
 repositories {
     mavenCentral()
 }
+
+import org.gradle.testing.jacoco.tasks.JacocoReport
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -34,4 +38,31 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+jacoco {
+    toolVersion = '0.8.12'
+}
+
+tasks.named('jacocoTestReport', JacocoReport) {
+    dependsOn tasks.named('test')
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+}
+
+tasks.named('sonarqube') {
+    dependsOn tasks.named('jacocoTestReport')
+}
+
+sonarqube {
+    properties {
+        property 'sonar.coverage.jacoco.xmlReportPaths', layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml').get().asFile.absolutePath
+        property 'sonar.exclusions', 'build/**,bin/**'
+        property 'sonar.coverage.exclusions', 'src/main/java/com/futbol/tokenmarket/dto/**,src/main/java/com/futbol/tokenmarket/exception/**'
+    }
 }
