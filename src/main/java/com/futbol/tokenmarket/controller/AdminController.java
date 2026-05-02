@@ -34,10 +34,18 @@ public class AdminController {
     }
 
     @PostMapping("/scrape/match-stats")
-    @Operation(summary = "Scrapear estadísticas de partidos de todas las ligas",
-               description = "Dispara el scraping de match stats para las 5 ligas en background. Equivalente al job de lunes/viernes 03:00.")
+    @Operation(summary = "Scrapear estadísticas de la última jornada (todas las ligas)",
+               description = "Obtiene los partidos de la última jornada de cada liga y extrae stats de todos sus jugadores. Equivalente al job de lunes/viernes 03:00.")
     public ResponseEntity<String> scrapeAllMatchStats() {
+        LEAGUES.forEach(scraperTrigger::triggerMatchStatsByMatchday);
+        return ResponseEntity.accepted().body("Scraping por jornada iniciado en background para: " + LEAGUES);
+    }
+
+    @PostMapping("/scrape/match-stats/legacy")
+    @Operation(summary = "Scrapear estadísticas (enfoque legacy por jugador)",
+               description = "Recorre todos los jugadores individualmente. Muy lento, solo para backfill o debugging.")
+    public ResponseEntity<String> scrapeAllMatchStatsLegacy() {
         LEAGUES.forEach(scraperTrigger::triggerMatchStatsScrape);
-        return ResponseEntity.accepted().body("Scraping de partidos iniciado en background para: " + LEAGUES);
+        return ResponseEntity.accepted().body("Scraping legacy iniciado en background para: " + LEAGUES);
     }
 }

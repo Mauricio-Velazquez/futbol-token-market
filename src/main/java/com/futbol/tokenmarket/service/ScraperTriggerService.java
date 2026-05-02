@@ -25,12 +25,22 @@ public class ScraperTriggerService {
 
     @Async
     public void triggerMatchStatsScrape(String league) {
-        System.out.println("[Scraper] Iniciando scraping de partidos: " + league);
+        System.out.println("[Scraper] Iniciando scraping de partidos (legacy): " + league);
         try {
-            var stats = playerService.scrapeMatchStatsForLeague(league);
-            System.out.println("[Scraper] " + league + ": " + stats.size() + " partidos nuevos");
+            playerService.scrapeMatchStatsForLeague(league);
         } catch (Exception e) {
             System.err.println("[Scraper] Error scraping partidos de " + league + ": " + e.getMessage());
+        }
+    }
+
+    @Async
+    public void triggerMatchStatsByMatchday(String league) {
+        System.out.println("[Scraper] Iniciando scraping por jornada: " + league);
+        try {
+            playerService.scrapeMatchStatsByMatchday(league);
+            System.out.println("[Scraper] " + league + ": scraping por jornada completado");
+        } catch (Exception e) {
+            System.err.println("[Scraper] Error scraping jornada de " + league + ": " + e.getMessage());
         }
     }
 }

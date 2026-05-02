@@ -25,10 +25,10 @@ public class ScraperSchedulerService {
         LEAGUES.forEach(scraperTrigger::triggerPlayersScrape);
     }
 
-    // Lunes y Viernes a las 03:00 — captura partidos nuevos desde la última ejecución
+    // Lunes y Viernes a las 03:00 — captura partidos de la última jornada (enfoque match-centric)
     @Scheduled(cron = "0 0 3 * * MON,FRI")
     public void scrapeMatchStatsTwiceWeekly() {
-        System.out.println("[Scheduler] Iniciando scraping de partidos (lunes/viernes)");
-        LEAGUES.forEach(scraperTrigger::triggerMatchStatsScrape);
+        System.out.println("[Scheduler] Iniciando scraping de partidos por jornada (lunes/viernes)");
+        LEAGUES.forEach(scraperTrigger::triggerMatchStatsByMatchday);
     }
 }

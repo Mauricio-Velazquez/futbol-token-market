@@ -40,6 +40,15 @@ public class PlayerMatchStatsRepository {
                 .toList();
     }
 
+    // Devuelve el conjunto de todos los matchIds ya guardados (para el scraper por partido)
+    public Set<String> getExistingMatchIds() throws IOException {
+        Set<String> ids = new HashSet<>();
+        for (PlayerMatchStats s : findAll()) {
+            ids.add(s.getMatchId());
+        }
+        return ids;
+    }
+
     // Lee el archivo una sola vez y devuelve matchIds agrupados por playerId
     public Map<String, Set<String>> getExistingMatchIdsByPlayer() throws IOException {
         Map<String, Set<String>> map = new HashMap<>();

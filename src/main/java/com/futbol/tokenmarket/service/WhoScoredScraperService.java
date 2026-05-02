@@ -35,6 +35,67 @@ public class WhoScoredScraperService {
         "Ligue 1",        WHOSCORED_BASE + "/regions/74/tournaments/22/france-ligue-1"
     );
 
+    /**
+     * Navigates to the league summary page and returns URLs of COMPLETED matches
+     * (status=6/FT) from the currently displayed matchday window.
+     *
+     * Strategy: read the hypernova JSON of the fixtures widget (authoritative list of
+     * matches + status for the displayed week), filter to status=6, then look up each
+     * match's full /live/ URL in the DOM.
+     */
+    public List<String> scrapeLeagueMatchUrls(String leagueName) {
+        String leagueUrl = LEAGUE_URLS.get(leagueName);
+        if (leagueUrl == null) {
+            throw new IllegalArgumentException("Liga no soportada: " + leagueName);
+        }
+
+        WebDriver driver = createDriver();
+        List<String> matchUrls = new ArrayList<>();
+        try {
+            driver.get(leagueUrl);
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+            wait.until(ExpectedConditions.presenceOfElementLocated(
+                By.cssSelector("script[data-hypernova-key='tournamentfixtures']")));
+
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+
+            // 1. Parse the hypernova JSON to get IDs of finished matches (status=6)
+            //    and look up each one's /live/ URL in the DOM.
+            String extractScript =
+                "try {" +
+                "  var el = document.querySelector('script[type=\"application/json\"][data-hypernova-key=\"tournamentfixtures\"]');" +
+                "  if (!el) return [];" +
+                "  var json = JSON.parse(el.textContent.trim().replace(/^<!--/, '').replace(/-->$/, ''));" +
+                "  var urls = [];" +
+                "  (json.tournaments || []).forEach(function(t) {" +
+                "    (t.matches || []).forEach(function(m) {" +
+                "      if (m.status !== 6) return;" + // 6 = FT
+                "      var link = document.querySelector('a[href*=\"/matches/' + m.id + '/live/\"]');" +
+                "      if (link) urls.push(link.href);" +
+                "    });" +
+                "  });" +
+                "  return urls;" +
+                "} catch(e) { return []; }";
+
+            int prevCount = -1;
+            for (int i = 0; i < 15; i++) {
+                try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+                @SuppressWarnings("unchecked")
+                List<String> items = (List<String>) js.executeScript(extractScript);
+                int count = items != null ? items.size() : 0;
+                System.out.println("[WhoScored] " + leagueName + " - partidos FT encontrados: " + count);
+                if (items != null && count > 0) matchUrls = new ArrayList<>(items);
+                if (count > 0 && count == prevCount) break;
+                prevCount = count;
+            }
+
+            System.out.println("[WhoScored] " + leagueName + " - total partidos FT: " + matchUrls.size());
+        } finally {
+            driver.quit();
+        }
+        return matchUrls;
+    }
+
     public Map<String, String> scrapeTeamUrls(String leagueName) {
         String leagueUrl = LEAGUE_URLS.get(leagueName);
         if (leagueUrl == null) {
@@ -186,6 +247,31 @@ public class WhoScoredScraperService {
         return String.valueOf(Math.abs(href.hashCode()));
     }
 
+    // Extrae filas de un contenedor específico (statistics-table-{home|away}-{tab}).
+    // Formato de fila: playerHref|||teamField|||stat1=val1|||stat2=val2...
+    private static final String EXTRACT_CONTAINER_FN =
+        "function extractContainer(containerId, teamField) {" +
+        "  var container = document.querySelector('#' + containerId);" +
+        "  if (!container) return [];" +
+        "  var table = container.querySelector('table');" +
+        "  if (!table) return [];" +
+        "  var cols = Array.from(table.querySelectorAll('thead th')).map(function(th, i) {" +
+        "    var s = th.getAttribute('data-stat-name');" +
+        "    if (!s && th.textContent.trim() === 'Position') s = 'position';" +
+        "    return s ? {i: i, stat: s} : null;" +
+        "  }).filter(Boolean);" +
+        "  return Array.from(table.querySelectorAll('tbody tr')).map(function(row) {" +
+        "    var link = row.querySelector('a.player-link');" +
+        "    if (!link) return null;" +
+        "    var cells = Array.from(row.querySelectorAll('td'));" +
+        "    var parts = [link.href, teamField];" +
+        "    cols.forEach(function(c) {" +
+        "      parts.push(c.stat + '=' + ((cells[c.i]||{}).textContent||'-').trim().replace(/\\s+/g,' '));" +
+        "    });" +
+        "    return parts.join('|||');" +
+        "  }).filter(Boolean);" +
+        "}";
+
     // Extrae filas del primer <table> dentro del div indicado, usando data-stat-name de los <th>
     private static final String EXTRACT_TAB_FN =
         "function extractTab(divId) {" +
@@ -300,6 +386,141 @@ public class WhoScoredScraperService {
         return results;
     }
 
+    /**
+     * Scrapes stats for ALL players in a single match.
+     * The match URL comes from scrapeLeagueMatchUrls (/live/ format).
+     * Player stats are on the /livestatistics/ sub-page, so we convert the URL before navigating.
+     */
+    public List<PlayerMatchStats> scrapeMatchPlayerStats(
+            String matchUrl, Set<String> existingMatchIds) {
+
+        String matchId = extractMatchIdFromUrl(matchUrl);
+        if (existingMatchIds.contains(matchId)) {
+            System.out.println("[WhoScored] Partido " + matchId + " ya en DB, se omite");
+            return new ArrayList<>();
+        }
+
+        // /matches/{id}/live/{slug} → /matches/{id}/livestatistics/{slug}
+        String statsUrl = matchUrl.replace("/live/", "/livestatistics/");
+
+        WebDriver driver = createDriver();
+        List<PlayerMatchStats> results = new ArrayList<>();
+        Map<String, PlayerMatchStats> byPlayerId = new LinkedHashMap<>();
+
+        try {
+            driver.get(statsUrl);
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.id("live-player-stats")));
+
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+
+            // Extract date and team names from match header
+            @SuppressWarnings("unchecked")
+            Map<String, Object> meta = (Map<String, Object>) js.executeScript(
+                "var dateEl = Array.from(document.querySelectorAll('.info-block dd'))" +
+                "  .find(function(d){ return /\\d{2}-[A-Za-z]{3}-\\d{2}/.test(d.textContent); });" +
+                "var homeEl = document.querySelector('[data-field=\"home\"] .team-name, [data-field=\"home\"] a.team-link');" +
+                "var awayEl = document.querySelector('[data-field=\"away\"] .team-name, [data-field=\"away\"] a.team-link');" +
+                "return {" +
+                "  date:     dateEl ? dateEl.textContent.trim() : ''," +
+                "  homeTeam: homeEl ? homeEl.textContent.trim() : ''," +
+                "  awayTeam: awayEl ? awayEl.textContent.trim() : ''" +
+                "};");
+
+            String matchDate = meta != null ? String.valueOf(meta.getOrDefault("date", ""))     : "";
+            String homeTeam  = meta != null ? String.valueOf(meta.getOrDefault("homeTeam", "")) : "";
+            String awayTeam  = meta != null ? String.valueOf(meta.getOrDefault("awayTeam", "")) : "";
+            System.out.println("[WhoScored] Partido " + matchId + ": " + homeTeam + " vs " + awayTeam + " (" + matchDate + ")");
+
+            // [containerId, teamField, tabHref (null = already visible), label]
+            String[][] extractions = {
+                {"statistics-table-home-summary",   "home", null,                          "Home Summary"},
+                {"statistics-table-away-summary",   "away", null,                          "Away Summary"},
+                {"statistics-table-home-offensive", "home", "#live-player-home-offensive", "Home Offensive"},
+                {"statistics-table-home-defensive", "home", "#live-player-home-defensive", "Home Defensive"},
+                {"statistics-table-home-passing",   "home", "#live-player-home-passing",   "Home Passing"},
+                {"statistics-table-away-offensive", "away", "#live-player-away-offensive", "Away Offensive"},
+                {"statistics-table-away-defensive", "away", "#live-player-away-defensive", "Away Defensive"},
+                {"statistics-table-away-passing",   "away", "#live-player-away-passing",   "Away Passing"},
+            };
+
+            for (String[] ext : extractions) {
+                String containerId = ext[0];
+                String teamField   = ext[1];
+                String tabHref     = ext[2];
+                String label       = ext[3];
+
+                try {
+                    if (tabHref != null) {
+                        js.executeScript(
+                            "document.querySelectorAll('[style*=\"z-index: 2147483647\"],[style*=\"z-index:2147483647\"]')" +
+                            ".forEach(function(n){ n.remove(); });");
+                        js.executeScript(
+                            "var el = document.querySelector('a[href=\"" + tabHref + "\"]'); if (el) el.click();");
+                        try { Thread.sleep(300); } catch (InterruptedException ignored) {}
+                    }
+
+                    String script = EXTRACT_CONTAINER_FN +
+                        " return extractContainer('" + containerId + "', '" + teamField + "');";
+                    List<String> rows = pollMatchRows(js, script, matchId, label);
+                    mergeIntoStatsMap(rows, byPlayerId, matchId, matchUrl, matchDate, homeTeam, awayTeam);
+
+                } catch (Exception e) {
+                    System.err.println("[WhoScored] " + label + " partido " + matchId + ": " + e.getMessage());
+                }
+            }
+
+            results.addAll(byPlayerId.values());
+            System.out.println("[WhoScored] Partido " + matchId + " - jugadores: " + results.size());
+
+        } catch (Exception e) {
+            System.err.println("[WhoScored] Error scrapeando partido " + matchId + ": " + e.getMessage());
+        } finally {
+            driver.quit();
+        }
+        return results;
+    }
+
+    private List<String> pollMatchRows(JavascriptExecutor js, String script, String matchId, String label) {
+        int prevCount = -1;
+        List<String> captured = List.of();
+        for (int i = 0; i < 20; i++) {
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            @SuppressWarnings("unchecked")
+            List<String> items = (List<String>) js.executeScript(script);
+            int count = items != null ? items.size() : 0;
+            System.out.println("[WhoScored] Partido " + matchId + " [" + label + "] - filas: " + count);
+            if (items != null && count > 0) captured = items;
+            if (count > 0 && count == prevCount) break;
+            prevCount = count;
+        }
+        return captured;
+    }
+
+    private void mergeIntoStatsMap(List<String> rows, Map<String, PlayerMatchStats> map,
+            String matchId, String matchUrl, String matchDate, String homeTeam, String awayTeam) {
+        for (String row : rows) {
+            String[] parts = row.split("\\|\\|\\|", -1);
+            if (parts.length < 2) continue;
+            String playerHref = parts[0].trim();
+            String teamField  = parts[1].trim();
+            String playerId   = "ws_" + extractPlayerIdFromUrl(playerHref);
+            String opponent   = "home".equals(teamField) ? awayTeam : homeTeam;
+
+            PlayerMatchStats s = map.computeIfAbsent(playerId, pid -> {
+                PlayerMatchStats stat = new PlayerMatchStats();
+                stat.setId(matchId + "_" + pid);
+                stat.setMatchId(matchId);
+                stat.setPlayerId(pid);
+                stat.setMatchUrl(matchUrl);
+                stat.setDate(matchDate);
+                stat.setOpponent(opponent);
+                return stat;
+            });
+            applyStatPairs(s, parts, 2);
+        }
+    }
+
     private void clickTab(WebDriver driver, WebDriverWait wait, JavascriptExecutor js,
                           String linkCss, String tabDivId) throws Exception {
         // Eliminar overlays de ads con z-index altísimo que bloquean el click
@@ -349,37 +570,40 @@ public class WhoScoredScraperService {
     }
 
     private void mapStat(PlayerMatchStats s, String key, String val) {
-        switch (key) {
-            // Summary
-            case "matchStartTime"                       -> s.setDate(val);
-            case "position"                             -> s.setPosition(val);
-            case "minsPlayed"                           -> trySetIntStat(s::setMinutesPlayed, val);
-            case "goalTotal"                            -> trySetDoubleStat(s::setGoals, val);
-            case "assist"                               -> trySetDoubleStat(s::setAssists, val);
-            case "yellowCard"                           -> trySetIntStat(s::setYellowCards, val);
-            case "redCard"                              -> trySetIntStat(s::setRedCards, val);
-            case "shotsTotal"                           -> trySetDoubleStat(s::setShots, val);
-            case "passSuccess"                          -> trySetDoubleStat(s::setPassSuccess, val);
-            case "duelAerialWon"                        -> trySetDoubleStat(s::setAerialsWon, val);
-            case "Rating"                               -> trySetDoubleStat(s::setRating, val);
+        // Normalize to lowercase so both player-history names (camelCase) and
+        // match-centre names (CamelCase / PascalCase) resolve to the same case.
+        switch (key.toLowerCase()) {
+            // Summary — player history names
+            case "matchstarttime"                                  -> s.setDate(val);
+            case "position"                                        -> s.setPosition(val);
+            case "minsplayed"                                      -> trySetIntStat(s::setMinutesPlayed, val);
+            case "goaltotal"                                       -> trySetDoubleStat(s::setGoals, val);
+            case "assist"                                          -> trySetDoubleStat(s::setAssists, val);
+            case "yellowcard"                                      -> trySetIntStat(s::setYellowCards, val);
+            case "redcard"                                         -> trySetIntStat(s::setRedCards, val);
+            case "shotstotal"                                      -> trySetDoubleStat(s::setShots, val);
+            // passSuccess (player history) + PassSuccessInMatch (match centre)
+            case "passsuccess", "passsuccessinmatch"               -> trySetDoubleStat(s::setPassSuccess, val);
+            case "duelaerialwon"                                   -> trySetDoubleStat(s::setAerialsWon, val);
+            case "rating"                                          -> trySetDoubleStat(s::setRating, val);
             // Defensive
-            case "tackleTotal", "tackleTotalAttempted"  -> trySetDoubleStat(s::setTackles, val);
-            case "interceptionAll"                      -> trySetDoubleStat(s::setInterceptions, val);
-            case "foulsTotal"                           -> trySetDoubleStat(s::setFoulsCommitted, val);
-            case "clearanceTotal"                       -> trySetDoubleStat(s::setClearances, val);
-            case "shotBlocked"                          -> trySetDoubleStat(s::setBlockedShots, val);
-            case "saveTotal", "saves"                   -> trySetDoubleStat(s::setSaves, val);
+            case "tackletotal", "tackletotalattempted"             -> trySetDoubleStat(s::setTackles, val);
+            case "interceptionall"                                 -> trySetDoubleStat(s::setInterceptions, val);
+            case "foulstotal"                                      -> trySetDoubleStat(s::setFoulsCommitted, val);
+            case "clearancetotal"                                  -> trySetDoubleStat(s::setClearances, val);
+            case "shotblocked"                                     -> trySetDoubleStat(s::setBlockedShots, val);
+            case "savetotal", "saves"                              -> trySetDoubleStat(s::setSaves, val);
             // Offensive
-            case "shotOnTarget", "shotsOnTarget"        -> trySetDoubleStat(s::setShotsOnTarget, val);
-            case "keyPassTotal"                         -> trySetDoubleStat(s::setKeyPasses, val);
-            case "dribbleWon"                           -> trySetDoubleStat(s::setDribblesWon, val);
-            case "foulsTaken"                           -> trySetDoubleStat(s::setFoulsWon, val);
-            case "offsideGiven"                         -> trySetDoubleStat(s::setOffsides, val);
+            case "shotontarget", "shotsontarget"                   -> trySetDoubleStat(s::setShotsOnTarget, val);
+            case "keypasstotal"                                    -> trySetDoubleStat(s::setKeyPasses, val);
+            case "dribblewon"                                      -> trySetDoubleStat(s::setDribblesWon, val);
+            case "foulstaken"                                      -> trySetDoubleStat(s::setFoulsWon, val);
+            case "offsidegiven"                                    -> trySetDoubleStat(s::setOffsides, val);
             // Passing
-            case "passTotal"                            -> trySetDoubleStat(s::setTotalPasses, val);
-            case "passLongBallTotal", "longBallTotal"   -> trySetDoubleStat(s::setLongBalls, val);
-            case "passCrossTotal", "crossTotal"         -> trySetDoubleStat(s::setCrosses, val);
-            case "passThroughBallTotal","throughBallTotal" -> trySetDoubleStat(s::setThroughBalls, val);
+            case "passtotal"                                       -> trySetDoubleStat(s::setTotalPasses, val);
+            case "passlongballtotal", "longballtotal"              -> trySetDoubleStat(s::setLongBalls, val);
+            case "passcrosstotal", "crosstotal"                    -> trySetDoubleStat(s::setCrosses, val);
+            case "passthroughballtotal", "throughballtotal"        -> trySetDoubleStat(s::setThroughBalls, val);
         }
     }
 

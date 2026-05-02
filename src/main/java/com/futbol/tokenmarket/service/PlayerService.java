@@ -114,6 +114,53 @@ public class PlayerService {
         return List.of();
     }
 
+    /**
+     * Nuevo enfoque match-centric: en vez de iterar 2767 jugadores,
+     * obtiene los partidos de la última jornada (~9 por liga) y extrae
+     * stats de todos los jugadores de cada partido en una sola navegación.
+     */
+    public List<PlayerMatchStats> scrapeMatchStatsByMatchday(String leagueName) throws IOException {
+        List<String> matchUrls = whoScoredScraperService.scrapeLeagueMatchUrls(leagueName);
+        if (matchUrls.isEmpty()) {
+            System.out.println("[PlayerService] " + leagueName + ": no se encontraron partidos en la página de la liga");
+            return List.of();
+        }
+        System.out.println("[PlayerService] " + leagueName + ": " + matchUrls.size() + " partidos a procesar");
+
+        Set<String> existingMatchIds = matchStatsRepository.getExistingMatchIds();
+
+        File tempFile = matchStatsRepository.createLeagueTempFile(leagueName);
+        int total = 0;
+        boolean committed = false;
+        try {
+            for (String matchUrl : matchUrls) {
+                List<PlayerMatchStats> matchStats =
+                    whoScoredScraperService.scrapeMatchPlayerStats(matchUrl, existingMatchIds);
+                if (!matchStats.isEmpty()) {
+                    matchStatsRepository.appendToTemp(matchStats, tempFile);
+                    total += matchStats.size();
+                    System.out.println("[PlayerService] " + leagueName + " partido " +
+                        matchUrl.replaceAll(".*/matches/(\\d+)/.*", "$1") +
+                        ": " + matchStats.size() + " stats guardados (total acum: " + total + ")");
+                }
+            }
+            matchStatsRepository.commitAndDeleteTemp(tempFile);
+            committed = true;
+        } finally {
+            if (!committed) {
+                try {
+                    matchStatsRepository.commitAndDeleteTemp(tempFile);
+                    System.out.println("[PlayerService] " + leagueName + ": guardado parcial por fallo");
+                } catch (Exception e) {
+                    if (tempFile.exists()) tempFile.delete();
+                }
+            }
+        }
+
+        System.out.println("[PlayerService] " + leagueName + ": " + total + " stats nuevos guardados");
+        return List.of();
+    }
+
     public List<Player> scrapePlayersFromWhoScored(String leagueName) throws IOException {
         List<Team> teams = teamRepository.findByLeague(leagueName);
         if (teams.isEmpty()) {
