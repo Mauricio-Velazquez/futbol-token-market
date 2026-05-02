@@ -12,39 +12,23 @@ public class ScraperSchedulerService {
         "Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1"
     );
 
-    private final PlayerService playerService;
+    private final ScraperTriggerService scraperTrigger;
 
-    public ScraperSchedulerService(PlayerService playerService) {
-        this.playerService = playerService;
+    public ScraperSchedulerService(ScraperTriggerService scraperTrigger) {
+        this.scraperTrigger = scraperTrigger;
     }
 
     // Lunes a las 02:00 — actualiza rosters (traspasos, nuevos jugadores)
     @Scheduled(cron = "0 0 2 * * MON")
     public void scrapePlayersWeekly() {
         System.out.println("[Scheduler] Iniciando scraping de jugadores (lunes)");
-        for (String league : LEAGUES) {
-            try {
-                var players = playerService.scrapePlayersFromWhoScored(league);
-                System.out.println("[Scheduler] " + league + ": " + players.size() + " jugadores actualizados");
-            } catch (Exception e) {
-                System.err.println("[Scheduler] Error scraping jugadores de " + league + ": " + e.getMessage());
-            }
-        }
-        System.out.println("[Scheduler] Scraping de jugadores finalizado");
+        LEAGUES.forEach(scraperTrigger::triggerPlayersScrape);
     }
 
     // Lunes y Viernes a las 03:00 — captura partidos nuevos desde la última ejecución
     @Scheduled(cron = "0 0 3 * * MON,FRI")
     public void scrapeMatchStatsTwiceWeekly() {
         System.out.println("[Scheduler] Iniciando scraping de partidos (lunes/viernes)");
-        for (String league : LEAGUES) {
-            try {
-                var stats = playerService.scrapeMatchStatsForLeague(league);
-                System.out.println("[Scheduler] " + league + ": " + stats.size() + " partidos nuevos");
-            } catch (Exception e) {
-                System.err.println("[Scheduler] Error scraping partidos de " + league + ": " + e.getMessage());
-            }
-        }
-        System.out.println("[Scheduler] Scraping de partidos finalizado");
+        LEAGUES.forEach(scraperTrigger::triggerMatchStatsScrape);
     }
 }

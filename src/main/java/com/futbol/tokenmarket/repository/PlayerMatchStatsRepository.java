@@ -9,7 +9,10 @@ import org.springframework.stereotype.Repository;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -37,24 +40,42 @@ public class PlayerMatchStatsRepository {
                 .toList();
     }
 
-    public Set<String> getExistingMatchIds(String playerId) throws IOException {
-        return findByPlayerId(playerId).stream()
-                .map(PlayerMatchStats::getMatchId)
-                .collect(Collectors.toSet());
+    // Lee el archivo una sola vez y devuelve matchIds agrupados por playerId
+    public Map<String, Set<String>> getExistingMatchIdsByPlayer() throws IOException {
+        Map<String, Set<String>> map = new HashMap<>();
+        for (PlayerMatchStats s : findAll()) {
+            map.computeIfAbsent(s.getPlayerId(), k -> new HashSet<>()).add(s.getMatchId());
+        }
+        return map;
     }
 
-    public void saveAll(List<PlayerMatchStats> newStats) throws IOException {
+    // Escribe stats al archivo temporal de la liga (sin tocar la BD real)
+    public void appendToTemp(List<PlayerMatchStats> stats, File tempFile) throws IOException {
+        List<PlayerMatchStats> current = new ArrayList<>();
+        if (tempFile.exists()) {
+            current = objectMapper.readValue(tempFile, new TypeReference<>() {});
+        }
+        current.addAll(stats);
+        objectMapper.writerWithDefaultPrettyPrinter().writeValue(tempFile, current);
+    }
+
+    // Vuelca el temporal a la BD real y lo borra (operación atómica)
+    public synchronized void commitAndDeleteTemp(File tempFile) throws IOException {
+        if (!tempFile.exists()) return;
+        List<PlayerMatchStats> tempStats = objectMapper.readValue(tempFile, new TypeReference<>() {});
         List<PlayerMatchStats> existing = findAll();
-        Set<String> existingIds = existing.stream()
-                .map(PlayerMatchStats::getId)
-                .collect(Collectors.toSet());
-        // Solo agrega los que no existen todavía
-        for (PlayerMatchStats s : newStats) {
-            if (!existingIds.contains(s.getId())) {
-                existing.add(s);
-            }
+        Set<String> existingIds = existing.stream().map(PlayerMatchStats::getId).collect(Collectors.toSet());
+        for (PlayerMatchStats s : tempStats) {
+            if (!existingIds.contains(s.getId())) existing.add(s);
         }
         writeToFile(existing);
+        tempFile.delete();
+    }
+
+    public File createLeagueTempFile(String league) {
+        String safeName = league.replaceAll("[^a-zA-Z0-9]", "_");
+        File dataDir = new File(dataPath).getParentFile();
+        return new File(dataDir, "match_stats_" + safeName + ".tmp.json");
     }
 
     private void writeToFile(List<PlayerMatchStats> stats) throws IOException {

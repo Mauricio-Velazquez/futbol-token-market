@@ -56,11 +56,9 @@ public class PlayerRepository {
         return true;
     }
 
-    public boolean savePlayersForLeague(String league, List<Player> players) throws IOException {
+    public synchronized boolean savePlayersForLeague(String league, List<Player> players) throws IOException {
         List<Player> existing = findAll();
-        // Eliminar todos los jugadores de esa liga
         existing.removeIf(p -> p.getLeague().equalsIgnoreCase(league));
-        // Agregar los nuevos
         existing.addAll(players);
         writeToFile(existing);
         return true;

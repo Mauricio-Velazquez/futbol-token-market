@@ -9,6 +9,7 @@ import com.futbol.tokenmarket.repository.PlayerRepository;
 import com.futbol.tokenmarket.repository.TeamRepository;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -69,18 +70,48 @@ public class PlayerService {
             throw new IllegalArgumentException("No hay jugadores guardados para la liga: " + leagueName +
                 ". Ejecutá primero POST /api/players/scrape-from-whoscored/" + leagueName);
         }
-        List<PlayerMatchStats> allNew = new ArrayList<>();
-        for (Player player : players) {
-            Set<String> existing = matchStatsRepository.getExistingMatchIds(player.getId());
-            System.out.println("[PlayerService] " + player.getName() +
-                " - partidos existentes en DB: " + existing.size());
-            List<PlayerMatchStats> newStats = whoScoredScraperService.scrapePlayerMatchStats(player, existing);
-            if (!newStats.isEmpty()) {
-                matchStatsRepository.saveAll(newStats);
-                allNew.addAll(newStats);
+
+        // Una sola lectura del archivo para obtener todos los IDs existentes
+        Map<String, Set<String>> existingByPlayer = matchStatsRepository.getExistingMatchIdsByPlayer();
+
+        // Agrupar jugadores por equipo para escribir al temporal una vez por equipo
+        Map<String, List<Player>> playersByTeam = players.stream()
+                .collect(Collectors.groupingBy(Player::getTeam));
+
+        File tempFile = matchStatsRepository.createLeagueTempFile(leagueName);
+        int total = 0;
+        boolean committed = false;
+        try {
+            for (Map.Entry<String, List<Player>> entry : playersByTeam.entrySet()) {
+                String team = entry.getKey();
+                List<PlayerMatchStats> teamStats = new ArrayList<>();
+                for (Player player : entry.getValue()) {
+                    Set<String> existing = existingByPlayer.getOrDefault(player.getId(), Set.of());
+                    List<PlayerMatchStats> newStats = whoScoredScraperService.scrapePlayerMatchStats(player, existing);
+                    teamStats.addAll(newStats);
+                }
+                if (!teamStats.isEmpty()) {
+                    matchStatsRepository.appendToTemp(teamStats, tempFile);
+                    total += teamStats.size();
+                    System.out.println("[PlayerService] " + team + ": " + teamStats.size() + " partidos nuevos escritos al temporal");
+                }
+            }
+            matchStatsRepository.commitAndDeleteTemp(tempFile);
+            committed = true;
+        } finally {
+            if (!committed) {
+                // Fallo a mitad: guardar lo que se scrapeó antes de morir
+                try {
+                    matchStatsRepository.commitAndDeleteTemp(tempFile);
+                    System.out.println("[PlayerService] " + leagueName + ": guardado parcial por fallo");
+                } catch (Exception e) {
+                    if (tempFile.exists()) tempFile.delete();
+                }
             }
         }
-        return allNew;
+
+        System.out.println("[PlayerService] " + leagueName + ": " + total + " partidos nuevos guardados");
+        return List.of();
     }
 
     public List<Player> scrapePlayersFromWhoScored(String leagueName) throws IOException {

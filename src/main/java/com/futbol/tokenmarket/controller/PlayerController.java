@@ -4,6 +4,7 @@ import com.futbol.tokenmarket.model.Player;
 import com.futbol.tokenmarket.model.LeagueStats;
 import com.futbol.tokenmarket.model.PlayerMatchStats;
 import com.futbol.tokenmarket.service.PlayerService;
+import com.futbol.tokenmarket.service.ScraperTriggerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,9 +25,11 @@ import java.util.List;
 public class PlayerController {
 
     private final PlayerService service;
+    private final ScraperTriggerService scraperTrigger;
 
-    public PlayerController(PlayerService service) {
+    public PlayerController(PlayerService service, ScraperTriggerService scraperTrigger) {
         this.service = service;
+        this.scraperTrigger = scraperTrigger;
     }
 
     @GetMapping("/league-stats")
@@ -104,7 +107,7 @@ public class PlayerController {
 
     @PostMapping("/scrape-from-whoscored/{league}")
     @Operation(summary = "Scrapear jugadores de WhoScored",
-               description = "Para cada equipo guardado en la BD de la liga indicada, navega a su página en WhoScored y extrae los jugadores con sus estadísticas (goles, asistencias, rating, etc.). Requiere haber ejecutado primero GET /api/players/team-urls/{league}.")
+               description = "Para cada equipo guardado en la BD de la liga indicada, navega a su página en WhoScored y extrae nombre, posición y URL de cada jugador. Requiere haber ejecutado primero GET /api/players/team-urls/{league}.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Jugadores scrapeados y guardados exitosamente"),
             @ApiResponse(responseCode = "400", description = "No hay equipos guardados para esa liga"),
@@ -113,20 +116,10 @@ public class PlayerController {
     public ResponseEntity<LoadLeagueResponse> scrapePlayersFromWhoScored(
             @Parameter(description = "Nombre de la liga", example = "Bundesliga", required = true)
             @PathVariable String league) {
-        try {
-            List<Player> players = service.scrapePlayersFromWhoScored(league);
-            return ResponseEntity.ok(new LoadLeagueResponse(
-                    "Jugadores scrapeados exitosamente desde WhoScored",
-                    league,
-                    players.size(),
-                    players
-            ));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(new LoadLeagueResponse("Error: " + e.getMessage(), league, 0, null));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(new LoadLeagueResponse("Error en el scraping: " + e.getMessage(), league, 0, null));
-        }
+        scraperTrigger.triggerPlayersScrape(league);
+        return ResponseEntity.accepted().body(new LoadLeagueResponse(
+                "Scraping de jugadores iniciado en background para " + league,
+                league, null, null));
     }
 
     @PostMapping("/scrape-match-stats/{league}")
@@ -140,20 +133,10 @@ public class PlayerController {
     public ResponseEntity<MatchStatsResponse> scrapeMatchStats(
             @Parameter(description = "Nombre de la liga", example = "Bundesliga", required = true)
             @PathVariable String league) {
-        try {
-            List<PlayerMatchStats> newStats = service.scrapeMatchStatsForLeague(league);
-            return ResponseEntity.ok(new MatchStatsResponse(
-                    "Estadísticas scrapeadas exitosamente",
-                    league,
-                    newStats.size(),
-                    newStats
-            ));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(new MatchStatsResponse("Error: " + e.getMessage(), league, 0, null));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(new MatchStatsResponse("Error: " + e.getMessage(), league, 0, null));
-        }
+        scraperTrigger.triggerMatchStatsScrape(league);
+        return ResponseEntity.accepted().body(new MatchStatsResponse(
+                "Scraping de partidos iniciado en background para " + league,
+                league, null, null));
     }
 
     public static class MatchStatsResponse {
