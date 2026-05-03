@@ -50,16 +50,22 @@ public class PlayerController {
     }
 
     @GetMapping
-    @Operation(summary = "Obtener todos los jugadores",
-               description = "Devuelve la lista completa de todos los jugadores cargados en la base de datos")
+    @Operation(summary = "Obtener jugadores con filtros opcionales",
+               description = "Devuelve jugadores filtrados por liga, equipo y/o posición. Posiciones válidas: GK, D, DM, M, AM, FW")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Jugadores obtenidos exitosamente",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = Player.class))),
             @ApiResponse(responseCode = "500", description = "Error en el servidor")
     })
-    public ResponseEntity<List<Player>> getAllPlayers() {
+    public ResponseEntity<List<Player>> getAllPlayers(
+            @Parameter(description = "Filtrar por liga", example = "Bundesliga")
+            @RequestParam(required = false) String league,
+            @Parameter(description = "Filtrar por equipo", example = "Bayern Munich")
+            @RequestParam(required = false) String team,
+            @Parameter(description = "Filtrar por posición: GK, D, DM, M, AM, FW", example = "FW")
+            @RequestParam(required = false) String position) {
         try {
-            return ResponseEntity.ok(service.getAllPlayers());
+            return ResponseEntity.ok(service.getFilteredPlayers(league, team, position));
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         }

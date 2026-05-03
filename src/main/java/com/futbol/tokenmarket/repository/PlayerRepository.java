@@ -10,7 +10,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Repository
 public class PlayerRepository {
@@ -39,6 +41,39 @@ public class PlayerRepository {
         return findAll().stream()
                 .filter(p -> p.getLeague().equalsIgnoreCase(league))
                 .toList();
+    }
+
+    private static final Map<String, Pattern> POSITION_PATTERNS = Map.of(
+        "GK", Pattern.compile("(?:^|,)GK(?:,|$)"),
+        "D",  Pattern.compile("(?:^|,)D\\("),
+        "DM", Pattern.compile("(?:^|,)DM[CLR](?:,|$)"),
+        "M",  Pattern.compile("(?:^|,)M\\("),
+        "AM", Pattern.compile("(?:^|,)AM\\("),
+        "FW", Pattern.compile("(?:^|,)FW(?:,|$)")
+    );
+
+    public List<Player> findByFilters(String league, String team, String position) throws IOException {
+        List<Player> players = findAll();
+
+        if (league != null && !league.isBlank()) {
+            players = players.stream()
+                    .filter(p -> p.getLeague().equalsIgnoreCase(league))
+                    .toList();
+        }
+        if (team != null && !team.isBlank()) {
+            players = players.stream()
+                    .filter(p -> p.getTeam().equalsIgnoreCase(team))
+                    .toList();
+        }
+        if (position != null && !position.isBlank()) {
+            Pattern pattern = POSITION_PATTERNS.get(position.toUpperCase());
+            if (pattern != null) {
+                players = players.stream()
+                        .filter(p -> pattern.matcher(p.getPosition()).find())
+                        .toList();
+            }
+        }
+        return players;
     }
 
     public Player save(Player player) throws IOException {

@@ -54,6 +54,10 @@ public class PlayerService {
         return repository.findByLeague(league);
     }
 
+    public List<Player> getFilteredPlayers(String league, String team, String position) throws IOException {
+        return repository.findByFilters(league, team, position);
+    }
+
     public List<Team> scrapeTeamUrls(String leagueName) throws IOException {
         Map<String, String> scraped = whoScoredScraperService.scrapeTeamUrls(leagueName);
 
