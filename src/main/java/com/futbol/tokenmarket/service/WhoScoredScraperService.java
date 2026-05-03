@@ -629,11 +629,39 @@ public class WhoScoredScraperService {
         } catch (NumberFormatException ignored) {}
     }
 
-    private WebDriver createDriver() {
-        System.setProperty("webdriver.chrome.driver", "/snap/bin/chromium.chromedriver");
+    // private WebDriver createDriver() {
+    //     System.setProperty("webdriver.chrome.driver", "/snap/bin/chromium.chromedriver");
 
+    //     ChromeOptions options = new ChromeOptions();
+    //     options.setBinary("/usr/bin/chromium-browser");
+    //     options.addArguments(
+    //         "--headless=new",
+    //         "--no-sandbox",
+    //         "--disable-dev-shm-usage",
+    //         "--disable-gpu",
+    //         "--window-size=1920,1080",
+    //         "--disable-blink-features=AutomationControlled",
+    //         "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
+    //             "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    //     );
+    //     options.setExperimentalOption("excludeSwitches", List.of("enable-automation"));
+    //     options.setExperimentalOption("useAutomationExtension", false);
+
+    //     return new ChromeDriver(options);
+    // }
+
+    private WebDriver createDriver() {
+        String os = System.getProperty("os.name").toLowerCase();
         ChromeOptions options = new ChromeOptions();
-        options.setBinary("/usr/bin/chromium-browser");
+
+        if (os.contains("win")) {
+            System.out.println("[WhoScored] Detectado Windows. Usando configuración automática.");
+        } else {
+            System.out.println("[WhoScored] Detectado Linux. Aplicando rutas de Chromium.");
+            System.setProperty("webdriver.chrome.driver", "/snap/bin/chromium.chromedriver");
+            options.setBinary("/usr/bin/chromium-browser");
+        }
+
         options.addArguments(
             "--headless=new",
             "--no-sandbox",
@@ -641,9 +669,15 @@ public class WhoScoredScraperService {
             "--disable-gpu",
             "--window-size=1920,1080",
             "--disable-blink-features=AutomationControlled",
-            "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
-                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "--remote-allow-origins=*" // Agregado para evitar errores de conexión en Windows
         );
+
+        String userAgent = os.contains("win") 
+            ? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            : "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+        
+        options.addArguments("--user-agent=" + userAgent);
+
         options.setExperimentalOption("excludeSwitches", List.of("enable-automation"));
         options.setExperimentalOption("useAutomationExtension", false);
 

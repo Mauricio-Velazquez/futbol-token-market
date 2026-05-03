@@ -70,4 +70,316 @@
   "name" : "FC Heidenheim",
   "url" : "https://www.whoscored.com/teams/4852/show/germany-fc-heidenheim",
   "league" : "Bundesliga"
+}, {
+  "name" : "Inter",
+  "url" : "https://www.whoscored.com/teams/75/show/italy-inter",
+  "league" : "Serie A"
+}, {
+  "name" : "AC Milan",
+  "url" : "https://www.whoscored.com/teams/80/show/italy-ac-milan",
+  "league" : "Serie A"
+}, {
+  "name" : "Como",
+  "url" : "https://www.whoscored.com/teams/1290/show/italy-como",
+  "league" : "Serie A"
+}, {
+  "name" : "Juventus",
+  "url" : "https://www.whoscored.com/teams/87/show/italy-juventus",
+  "league" : "Serie A"
+}, {
+  "name" : "Roma",
+  "url" : "https://www.whoscored.com/teams/84/show/italy-roma",
+  "league" : "Serie A"
+}, {
+  "name" : "Atalanta",
+  "url" : "https://www.whoscored.com/teams/300/show/italy-atalanta",
+  "league" : "Serie A"
+}, {
+  "name" : "Napoli",
+  "url" : "https://www.whoscored.com/teams/276/show/italy-napoli",
+  "league" : "Serie A"
+}, {
+  "name" : "Udinese",
+  "url" : "https://www.whoscored.com/teams/86/show/italy-udinese",
+  "league" : "Serie A"
+}, {
+  "name" : "Lazio",
+  "url" : "https://www.whoscored.com/teams/77/show/italy-lazio",
+  "league" : "Serie A"
+}, {
+  "name" : "Bologna",
+  "url" : "https://www.whoscored.com/teams/71/show/italy-bologna",
+  "league" : "Serie A"
+}, {
+  "name" : "Genoa",
+  "url" : "https://www.whoscored.com/teams/278/show/italy-genoa",
+  "league" : "Serie A"
+}, {
+  "name" : "Sassuolo",
+  "url" : "https://www.whoscored.com/teams/2889/show/italy-sassuolo",
+  "league" : "Serie A"
+}, {
+  "name" : "Fiorentina",
+  "url" : "https://www.whoscored.com/teams/73/show/italy-fiorentina",
+  "league" : "Serie A"
+}, {
+  "name" : "Cagliari",
+  "url" : "https://www.whoscored.com/teams/78/show/italy-cagliari",
+  "league" : "Serie A"
+}, {
+  "name" : "Torino",
+  "url" : "https://www.whoscored.com/teams/72/show/italy-torino",
+  "league" : "Serie A"
+}, {
+  "name" : "Parma Calcio 1913",
+  "url" : "https://www.whoscored.com/teams/24341/show/italy-parma-calcio-1913",
+  "league" : "Serie A"
+}, {
+  "name" : "Lecce",
+  "url" : "https://www.whoscored.com/teams/79/show/italy-lecce",
+  "league" : "Serie A"
+}, {
+  "name" : "Verona",
+  "url" : "https://www.whoscored.com/teams/76/show/italy-verona",
+  "league" : "Serie A"
+}, {
+  "name" : "Cremonese",
+  "url" : "https://www.whoscored.com/teams/2731/show/italy-cremonese",
+  "league" : "Serie A"
+}, {
+  "name" : "Pisa",
+  "url" : "https://www.whoscored.com/teams/777/show/italy-pisa",
+  "league" : "Serie A"
+}, {
+  "name" : "Manchester City",
+  "url" : "https://www.whoscored.com/teams/167/show/england-manchester-city",
+  "league" : "Premier League"
+}, {
+  "name" : "Arsenal",
+  "url" : "https://www.whoscored.com/teams/13/show/england-arsenal",
+  "league" : "Premier League"
+}, {
+  "name" : "Manchester United",
+  "url" : "https://www.whoscored.com/teams/32/show/england-manchester-united",
+  "league" : "Premier League"
+}, {
+  "name" : "Liverpool",
+  "url" : "https://www.whoscored.com/teams/26/show/england-liverpool",
+  "league" : "Premier League"
+}, {
+  "name" : "Everton",
+  "url" : "https://www.whoscored.com/teams/31/show/england-everton",
+  "league" : "Premier League"
+}, {
+  "name" : "Brentford",
+  "url" : "https://www.whoscored.com/teams/189/show/england-brentford",
+  "league" : "Premier League"
+}, {
+  "name" : "Chelsea",
+  "url" : "https://www.whoscored.com/teams/15/show/england-chelsea",
+  "league" : "Premier League"
+}, {
+  "name" : "Crystal Palace",
+  "url" : "https://www.whoscored.com/teams/162/show/england-crystal-palace",
+  "league" : "Premier League"
+}, {
+  "name" : "Bournemouth",
+  "url" : "https://www.whoscored.com/teams/183/show/england-bournemouth",
+  "league" : "Premier League"
+}, {
+  "name" : "Leeds",
+  "url" : "https://www.whoscored.com/teams/19/show/england-leeds",
+  "league" : "Premier League"
+}, {
+  "name" : "Newcastle",
+  "url" : "https://www.whoscored.com/teams/23/show/england-newcastle",
+  "league" : "Premier League"
+}, {
+  "name" : "Nottingham Forest",
+  "url" : "https://www.whoscored.com/teams/174/show/england-nottingham-forest",
+  "league" : "Premier League"
+}, {
+  "name" : "Brighton",
+  "url" : "https://www.whoscored.com/teams/211/show/england-brighton",
+  "league" : "Premier League"
+}, {
+  "name" : "Aston Villa",
+  "url" : "https://www.whoscored.com/teams/24/show/england-aston-villa",
+  "league" : "Premier League"
+}, {
+  "name" : "West Ham",
+  "url" : "https://www.whoscored.com/teams/29/show/england-west-ham",
+  "league" : "Premier League"
+}, {
+  "name" : "Tottenham",
+  "url" : "https://www.whoscored.com/teams/30/show/england-tottenham",
+  "league" : "Premier League"
+}, {
+  "name" : "Sunderland",
+  "url" : "https://www.whoscored.com/teams/16/show/england-sunderland",
+  "league" : "Premier League"
+}, {
+  "name" : "Fulham",
+  "url" : "https://www.whoscored.com/teams/170/show/england-fulham",
+  "league" : "Premier League"
+}, {
+  "name" : "Wolves",
+  "url" : "https://www.whoscored.com/teams/161/show/england-wolves",
+  "league" : "Premier League"
+}, {
+  "name" : "Burnley",
+  "url" : "https://www.whoscored.com/teams/184/show/england-burnley",
+  "league" : "Premier League"
+}, {
+  "name" : "Barcelona",
+  "url" : "https://www.whoscored.com/teams/65/show/spain-barcelona",
+  "league" : "La Liga"
+}, {
+  "name" : "Real Madrid",
+  "url" : "https://www.whoscored.com/teams/52/show/spain-real-madrid",
+  "league" : "La Liga"
+}, {
+  "name" : "Real Betis",
+  "url" : "https://www.whoscored.com/teams/54/show/spain-real-betis",
+  "league" : "La Liga"
+}, {
+  "name" : "Atletico Madrid",
+  "url" : "https://www.whoscored.com/teams/63/show/spain-atletico-madrid",
+  "league" : "La Liga"
+}, {
+  "name" : "Villarreal",
+  "url" : "https://www.whoscored.com/teams/839/show/spain-villarreal",
+  "league" : "La Liga"
+}, {
+  "name" : "Real Sociedad",
+  "url" : "https://www.whoscored.com/teams/68/show/spain-real-sociedad",
+  "league" : "La Liga"
+}, {
+  "name" : "Osasuna",
+  "url" : "https://www.whoscored.com/teams/131/show/spain-osasuna",
+  "league" : "La Liga"
+}, {
+  "name" : "Elche",
+  "url" : "https://www.whoscored.com/teams/833/show/spain-elche",
+  "league" : "La Liga"
+}, {
+  "name" : "Mallorca",
+  "url" : "https://www.whoscored.com/teams/51/show/spain-mallorca",
+  "league" : "La Liga"
+}, {
+  "name" : "Celta Vigo",
+  "url" : "https://www.whoscored.com/teams/62/show/spain-celta-vigo",
+  "league" : "La Liga"
+}, {
+  "name" : "Getafe",
+  "url" : "https://www.whoscored.com/teams/819/show/spain-getafe",
+  "league" : "La Liga"
+}, {
+  "name" : "Rayo Vallecano",
+  "url" : "https://www.whoscored.com/teams/64/show/spain-rayo-vallecano",
+  "league" : "La Liga"
+}, {
+  "name" : "Valencia",
+  "url" : "https://www.whoscored.com/teams/55/show/spain-valencia",
+  "league" : "La Liga"
+}, {
+  "name" : "Deportivo Alaves",
+  "url" : "https://www.whoscored.com/teams/60/show/spain-deportivo-alaves",
+  "league" : "La Liga"
+}, {
+  "name" : "Espanyol",
+  "url" : "https://www.whoscored.com/teams/70/show/spain-espanyol",
+  "league" : "La Liga"
+}, {
+  "name" : "Girona",
+  "url" : "https://www.whoscored.com/teams/2783/show/spain-girona",
+  "league" : "La Liga"
+}, {
+  "name" : "Levante",
+  "url" : "https://www.whoscored.com/teams/832/show/spain-levante",
+  "league" : "La Liga"
+}, {
+  "name" : "Athletic Club",
+  "url" : "https://www.whoscored.com/teams/53/show/spain-athletic-club",
+  "league" : "La Liga"
+}, {
+  "name" : "Sevilla",
+  "url" : "https://www.whoscored.com/teams/67/show/spain-sevilla",
+  "league" : "La Liga"
+}, {
+  "name" : "Real Oviedo",
+  "url" : "https://www.whoscored.com/teams/61/show/spain-real-oviedo",
+  "league" : "La Liga"
+}, {
+  "name" : "Paris Saint-Germain",
+  "url" : "https://www.whoscored.com/teams/304/show/france-paris-saint-germain",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Lens",
+  "url" : "https://www.whoscored.com/teams/309/show/france-lens",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Lyon",
+  "url" : "https://www.whoscored.com/teams/228/show/france-lyon",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Rennes",
+  "url" : "https://www.whoscored.com/teams/313/show/france-rennes",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Lille",
+  "url" : "https://www.whoscored.com/teams/607/show/france-lille",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Marseille",
+  "url" : "https://www.whoscored.com/teams/249/show/france-marseille",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Strasbourg",
+  "url" : "https://www.whoscored.com/teams/148/show/france-strasbourg",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Monaco",
+  "url" : "https://www.whoscored.com/teams/248/show/france-monaco",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Brest",
+  "url" : "https://www.whoscored.com/teams/2332/show/france-brest",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Toulouse",
+  "url" : "https://www.whoscored.com/teams/246/show/france-toulouse",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Lorient",
+  "url" : "https://www.whoscored.com/teams/146/show/france-lorient",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Le Havre",
+  "url" : "https://www.whoscored.com/teams/217/show/france-le-havre",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Auxerre",
+  "url" : "https://www.whoscored.com/teams/308/show/france-auxerre",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Angers",
+  "url" : "https://www.whoscored.com/teams/614/show/france-angers",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Paris FC",
+  "url" : "https://www.whoscored.com/teams/2832/show/france-paris-fc",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Nantes",
+  "url" : "https://www.whoscored.com/teams/302/show/france-nantes",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Nice",
+  "url" : "https://www.whoscored.com/teams/613/show/france-nice",
+  "league" : "Ligue 1"
+}, {
+  "name" : "Metz",
+  "url" : "https://www.whoscored.com/teams/314/show/france-metz",
+  "league" : "Ligue 1"
 } ]
