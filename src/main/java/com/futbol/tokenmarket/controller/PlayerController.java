@@ -71,6 +71,27 @@ public class PlayerController {
         }
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Obtener un jugador por ID",
+               description = "Devuelve el jugador con el ID especificado")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Jugador encontrado",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Player.class))),
+            @ApiResponse(responseCode = "404", description = "Jugador no encontrado"),
+            @ApiResponse(responseCode = "500", description = "Error en el servidor")
+    })
+    public ResponseEntity<Player> getPlayerById(
+            @Parameter(description = "ID del jugador", example = "ws_83532", required = true)
+            @PathVariable String id) {
+        try {
+            return service.getPlayerById(id)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     @GetMapping("/league/{league}")
     @Operation(summary = "Obtener jugadores de una liga específica",
                description = "Devuelve todos los jugadores que pertenecen a una liga específica")
