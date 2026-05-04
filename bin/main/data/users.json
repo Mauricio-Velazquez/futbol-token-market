@@ -18,4 +18,8 @@
   "id" : "1dae2ebc-3237-4d14-8fa1-e1d1955ec2d3",
   "username" : "Lucas",
   "password" : "$2a$10$.yuYN3I/1arU5j.LViZcDu/rWTDVdPOweXvlIZ2EfIbaWp2wrts/W"
+}, {
+  "id" : "b5f813be-4955-433b-a50f-27f59e58c2a5",
+  "username" : "Nico",
+  "password" : "$2a$10$NFn2N9nfoFKBRyQl.eEpGOAiYwoAQNL/VKjflytKoZGeaMkedqFDq"
 } ]
