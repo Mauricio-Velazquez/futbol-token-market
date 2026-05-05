@@ -24,16 +24,6 @@ public class ScraperTriggerService {
     }
 
     @Async
-    public void triggerMatchStatsScrape(String league) {
-        System.out.println("[Scraper] Iniciando scraping de partidos (legacy): " + league);
-        try {
-            playerService.scrapeMatchStatsForLeague(league);
-        } catch (Exception e) {
-            System.err.println("[Scraper] Error scraping partidos de " + league + ": " + e.getMessage());
-        }
-    }
-
-    @Async
     public void triggerMatchStatsByMatchday(String league) {
         System.out.println("[Scraper] Iniciando scraping por jornada: " + league);
         try {
