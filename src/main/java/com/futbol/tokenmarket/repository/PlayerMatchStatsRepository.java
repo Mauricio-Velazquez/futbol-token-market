@@ -9,10 +9,8 @@ import org.springframework.stereotype.Repository;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,28 +32,12 @@ public class PlayerMatchStatsRepository {
         return objectMapper.readValue(file, new TypeReference<>() {});
     }
 
-    public List<PlayerMatchStats> findByPlayerId(String playerId) throws IOException {
-        return findAll().stream()
-                .filter(s -> playerId.equals(s.getPlayerId()))
-                .toList();
-    }
-
-    // Devuelve el conjunto de todos los matchIds ya guardados (para el scraper por partido)
     public Set<String> getExistingMatchIds() throws IOException {
         Set<String> ids = new HashSet<>();
         for (PlayerMatchStats s : findAll()) {
             ids.add(s.getMatchId());
         }
         return ids;
-    }
-
-    // Lee el archivo una sola vez y devuelve matchIds agrupados por playerId
-    public Map<String, Set<String>> getExistingMatchIdsByPlayer() throws IOException {
-        Map<String, Set<String>> map = new HashMap<>();
-        for (PlayerMatchStats s : findAll()) {
-            map.computeIfAbsent(s.getPlayerId(), k -> new HashSet<>()).add(s.getMatchId());
-        }
-        return map;
     }
 
     // Escribe stats al archivo temporal de la liga (sin tocar la BD real)

@@ -2,6 +2,8 @@ package com.futbol.tokenmarket.service;
 
 import com.futbol.tokenmarket.model.LeagueStats;
 import com.futbol.tokenmarket.model.Player;
+import com.futbol.tokenmarket.model.PlayerMatchStats;
+import com.futbol.tokenmarket.model.Team;
 import com.futbol.tokenmarket.repository.PlayerMatchStatsRepository;
 import com.futbol.tokenmarket.repository.PlayerRepository;
 import com.futbol.tokenmarket.repository.TeamRepository;
@@ -19,6 +21,10 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -131,6 +137,109 @@ class PlayerServiceTest {
             Optional<Player> result = playerService.getPlayerById("inexistente");
 
             assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("getPlayersByLeague")
+    class GetPlayersByLeague {
+
+        @Test
+        @DisplayName("delega al repositorio con la liga exacta")
+        void delegatesToRepositoryWithExactLeague() throws IOException {
+            List<Player> expected = List.of(playerWithLeague("Bundesliga"));
+            when(playerRepository.findByLeague("Bundesliga")).thenReturn(expected);
+
+            List<Player> result = playerService.getPlayersByLeague("Bundesliga");
+
+            assertThat(result).isEqualTo(expected);
+        }
+    }
+
+    @Nested
+    @DisplayName("getFilteredPlayers")
+    class GetFilteredPlayers {
+
+        @Test
+        @DisplayName("delega los tres filtros al repositorio sin modificarlos")
+        void passesAllThreeFiltersToRepository() throws IOException {
+            List<Player> expected = List.of(playerWithLeague("La Liga"));
+            when(playerRepository.findByFilters("La Liga", "Barcelona", "GK")).thenReturn(expected);
+
+            List<Player> result = playerService.getFilteredPlayers("La Liga", "Barcelona", "GK");
+
+            assertThat(result).isEqualTo(expected);
+        }
+
+        @Test
+        @DisplayName("acepta filtros nulos y los pasa al repositorio tal cual")
+        void passesNullFiltersToRepository() throws IOException {
+            when(playerRepository.findByFilters(null, null, null)).thenReturn(List.of());
+
+            List<Player> result = playerService.getFilteredPlayers(null, null, null);
+
+            assertThat(result).isEmpty();
+            verify(playerRepository).findByFilters(null, null, null);
+        }
+    }
+
+    @Nested
+    @DisplayName("scrapeTeamUrls")
+    class ScrapeTeamUrls {
+
+        @Test
+        @DisplayName("convierte el mapa del scraper en Team con la liga correcta")
+        void mapsScrapedEntriesIntoTeamsWithCorrectLeague() throws IOException {
+            when(whoScoredScraperService.scrapeTeamUrls("La Liga")).thenReturn(
+                java.util.Map.of("Barcelona", "https://whoscored.com/barcelona")
+            );
+            when(teamRepository.saveTeamsForLeague(eq("La Liga"), any())).thenAnswer(i -> i.getArgument(1));
+
+            List<Team> result = playerService.scrapeTeamUrls("La Liga");
+
+            assertThat(result).hasSize(1);
+            Team team = result.get(0);
+            assertThat(team.getName()).isEqualTo("Barcelona");
+            assertThat(team.getUrl()).isEqualTo("https://whoscored.com/barcelona");
+            assertThat(team.getLeague()).isEqualTo("La Liga");
+        }
+
+        @Test
+        @DisplayName("persiste los equipos en el repositorio")
+        void persistsTeamsToRepository() throws IOException {
+            when(whoScoredScraperService.scrapeTeamUrls("La Liga")).thenReturn(
+                java.util.Map.of("Real Madrid", "https://whoscored.com/real-madrid")
+            );
+            when(teamRepository.saveTeamsForLeague(eq("La Liga"), any())).thenReturn(List.of());
+
+            playerService.scrapeTeamUrls("La Liga");
+
+            verify(teamRepository).saveTeamsForLeague(eq("La Liga"), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("scrapeMatchStatsByMatchday")
+    class ScrapeMatchStatsByMatchday {
+
+        @Test
+        @DisplayName("devuelve lista vacía cuando el scraper no encuentra partidos")
+        void returnsEmptyListWhenNoMatchUrlsFound() throws IOException {
+            when(whoScoredScraperService.scrapeLeagueMatchUrls("Serie A")).thenReturn(List.of());
+
+            List<PlayerMatchStats> result = playerService.scrapeMatchStatsByMatchday("Serie A");
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("no toca el repositorio cuando no hay partidos que procesar")
+        void doesNotInteractWithStatsRepositoryWhenNoMatchesFound() throws IOException {
+            when(whoScoredScraperService.scrapeLeagueMatchUrls("Serie A")).thenReturn(List.of());
+
+            playerService.scrapeMatchStatsByMatchday("Serie A");
+
+            verifyNoInteractions(matchStatsRepository);
         }
     }
 
