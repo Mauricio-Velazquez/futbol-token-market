@@ -629,27 +629,6 @@ public class WhoScoredScraperService {
         } catch (NumberFormatException ignored) {}
     }
 
-    // private WebDriver createDriver() {
-    //     System.setProperty("webdriver.chrome.driver", "/snap/bin/chromium.chromedriver");
-
-    //     ChromeOptions options = new ChromeOptions();
-    //     options.setBinary("/usr/bin/chromium-browser");
-    //     options.addArguments(
-    //         "--headless=new",
-    //         "--no-sandbox",
-    //         "--disable-dev-shm-usage",
-    //         "--disable-gpu",
-    //         "--window-size=1920,1080",
-    //         "--disable-blink-features=AutomationControlled",
-    //         "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
-    //             "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    //     );
-    //     options.setExperimentalOption("excludeSwitches", List.of("enable-automation"));
-    //     options.setExperimentalOption("useAutomationExtension", false);
-
-    //     return new ChromeDriver(options);
-    // }
-
     private WebDriver createDriver() {
         String os = System.getProperty("os.name").toLowerCase();
         ChromeOptions options = new ChromeOptions();

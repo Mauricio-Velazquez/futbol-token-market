@@ -86,15 +86,4 @@ public class PlayerJsonService {
         }
     }
 
-    /**
-     * Limpiar el archivo de jugadores
-     */
-    public void clearPlayersJson() {
-        try {
-            savePlayersToJson(new ArrayList<>());
-            System.out.println("[PlayerJsonService] Archivo de jugadores limpiado");
-        } catch (Exception e) {
-            System.err.println("[PlayerJsonService] Error limpiando archivo: " + e.getMessage());
-        }
-    }
 }
