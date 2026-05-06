@@ -337,7 +337,7 @@ public class WhoScoredScraperService {
                 {"a[href='#player-matches-stats-offensive']", "player-matches-stats-offensive", "Offensive"},
                 {"a[href='#player-matches-stats-passing']",   "player-matches-stats-passing",   "Passing"}
             };
-            enrichStatsWithTabs(driver, wait, js, byMatchUrl, tabs, true, player.getName());
+            enrichStatsWithTabs(driver, wait, js, byMatchUrl, tabs, player.getName());
 
             results.addAll(byMatchUrl.values());
             log.info(WS_PREFIX + "{} - partidos nuevos: {}", player.getName(), results.size());
@@ -374,15 +374,15 @@ public class WhoScoredScraperService {
 
     private void enrichStatsWithTabs(WebDriver driver, WebDriverWait wait, JavascriptExecutor js,
             Map<String, PlayerMatchStats> byMatchUrl, String[][] tabs,
-            boolean latestOnly, String playerName) {
+            String playerName) {
         for (String[] tab : tabs) {
-            processTab(driver, wait, js, tab, byMatchUrl, true, playerName);
+            processTab(driver, wait, js, tab, byMatchUrl, playerName);
         }
     }
 
     private void processTab(WebDriver driver, WebDriverWait wait, JavascriptExecutor js,
             String[] tab, Map<String, PlayerMatchStats> byMatchUrl,
-            boolean latestOnly, String playerName) {
+            String playerName) {
         try {
             clickTab(driver, wait, js, tab[0], tab[1]);
             List<String> tabRows = pollTab(js, tab[1], playerName, tab[2]);
