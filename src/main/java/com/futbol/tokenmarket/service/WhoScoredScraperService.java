@@ -632,8 +632,11 @@ public class WhoScoredScraperService {
 
     private String extractMatchIdFromUrl(String href) {
         try {
-            String[] parts = href.split("/matches/");
-            if (parts.length > 1) return parts[1].split("/")[0];
+            // Handle URLs like /matches/123/show or /live/123
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("/(?:matches|live)/([^/]+)")
+                .matcher(href);
+            if (m.find()) return m.group(1);
         } catch (Exception ignored) {
             // fallback to hash
         }
