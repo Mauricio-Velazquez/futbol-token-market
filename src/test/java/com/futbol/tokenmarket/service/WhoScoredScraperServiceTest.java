@@ -240,9 +240,10 @@ class WhoScoredScraperServiceTest {
 
             invokePrivateParseTeamEntries(captured, teamUrls);
 
-            assertThat(teamUrls).hasSize(2);
-            assertThat(teamUrls).containsEntry("Manchester United", "http://example.com/teams/1");
-            assertThat(teamUrls).containsEntry("Liverpool", "http://example.com/teams/2");
+            assertThat(teamUrls)
+                .hasSize(2)
+                .containsEntry("Manchester United", "http://example.com/teams/1")
+                .containsEntry("Liverpool", "http://example.com/teams/2");
         }
 
         @Test
@@ -285,8 +286,9 @@ class WhoScoredScraperServiceTest {
 
             invokePrivateParseTeamEntries(captured, teamUrls);
 
-            assertThat(teamUrls).hasSize(1);
-            assertThat(teamUrls).containsEntry("Manchester United", "http://example.com/teams/1");
+            assertThat(teamUrls)
+                .hasSize(1)
+                .containsEntry("Manchester United", "http://example.com/teams/1");
         }
 
         @Test
@@ -300,8 +302,9 @@ class WhoScoredScraperServiceTest {
 
             invokePrivateParseTeamEntries(captured, teamUrls);
 
-            assertThat(teamUrls).containsKey("Manchester United");
-            assertThat(teamUrls).containsKey("Liverpool");
+            assertThat(teamUrls)
+                .containsKey("Manchester United")
+                .containsKey("Liverpool");
         }
     }
 
