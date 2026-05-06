@@ -3,6 +3,8 @@ package com.futbol.tokenmarket.repository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.futbol.tokenmarket.model.Team;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
@@ -13,6 +15,8 @@ import java.util.List;
 
 @Repository
 public class TeamRepository {
+
+    private static final Logger log = LoggerFactory.getLogger(TeamRepository.class);
 
     private final ObjectMapper objectMapper;
     private final String dataPath;
@@ -46,6 +50,6 @@ public class TeamRepository {
         File file = new File(dataPath);
         file.getParentFile().mkdirs();
         objectMapper.writerWithDefaultPrettyPrinter().writeValue(file, teams);
-        System.out.println("[TeamRepository] Guardado " + teams.size() + " equipos en: " + file.getAbsolutePath());
+        log.info("[TeamRepository] Guardado {} equipos en: {}", teams.size(), file.getAbsolutePath());
     }
 }

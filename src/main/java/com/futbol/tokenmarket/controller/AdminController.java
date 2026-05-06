@@ -5,12 +5,15 @@ import com.futbol.tokenmarket.service.PlayerService;
 import com.futbol.tokenmarket.model.Team;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -18,6 +21,7 @@ import java.util.List;
 @Tag(name = "Admin", description = "Operaciones administrativas")
 public class AdminController {
 
+    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
     private static final List<String> LEAGUES = List.of(
         "Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1"
     );
@@ -52,9 +56,9 @@ public class AdminController {
             return ResponseEntity.ok(teams);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e.getMessage(), e);
+        } catch (IOException e) {
+            log.error("Error scrapeando equipos para liga {}: {}", league, e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 

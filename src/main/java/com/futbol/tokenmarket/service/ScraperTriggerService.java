@@ -1,10 +1,14 @@
 package com.futbol.tokenmarket.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ScraperTriggerService {
+
+    private static final Logger log = LoggerFactory.getLogger(ScraperTriggerService.class);
 
     private final PlayerService playerService;
 
@@ -14,23 +18,23 @@ public class ScraperTriggerService {
 
     @Async
     public void triggerPlayersScrape(String league) {
-        System.out.println("[Scraper] Iniciando scraping de jugadores: " + league);
+        log.info("[Scraper] Iniciando scraping de jugadores: {}", league);
         try {
             var players = playerService.scrapePlayersFromWhoScored(league);
-            System.out.println("[Scraper] " + league + ": " + players.size() + " jugadores actualizados");
+            log.info("[Scraper] {}: {} jugadores actualizados", league, players.size());
         } catch (Exception e) {
-            System.err.println("[Scraper] Error scraping jugadores de " + league + ": " + e.getMessage());
+            log.error("[Scraper] Error scraping jugadores de {}: {}", league, e.getMessage(), e);
         }
     }
 
     @Async
     public void triggerMatchStatsByMatchday(String league) {
-        System.out.println("[Scraper] Iniciando scraping por jornada: " + league);
+        log.info("[Scraper] Iniciando scraping por jornada: {}", league);
         try {
             playerService.scrapeMatchStatsByMatchday(league);
-            System.out.println("[Scraper] " + league + ": scraping por jornada completado");
+            log.info("[Scraper] {}: scraping por jornada completado", league);
         } catch (Exception e) {
-            System.err.println("[Scraper] Error scraping jornada de " + league + ": " + e.getMessage());
+            log.error("[Scraper] Error scraping jornada de {}: {}", league, e.getMessage(), e);
         }
     }
 }

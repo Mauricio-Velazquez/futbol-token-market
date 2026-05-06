@@ -3,11 +3,14 @@ package com.futbol.tokenmarket.repository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.futbol.tokenmarket.model.PlayerMatchStats;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -16,6 +19,8 @@ import java.util.stream.Collectors;
 
 @Repository
 public class PlayerMatchStatsRepository {
+
+    private static final Logger log = LoggerFactory.getLogger(PlayerMatchStatsRepository.class);
 
     private final ObjectMapper objectMapper;
     private final String dataPath;
@@ -40,7 +45,6 @@ public class PlayerMatchStatsRepository {
         return ids;
     }
 
-    // Escribe stats al archivo temporal de la liga (sin tocar la BD real)
     public void appendToTemp(List<PlayerMatchStats> stats, File tempFile) throws IOException {
         List<PlayerMatchStats> current = new ArrayList<>();
         if (tempFile.exists()) {
@@ -50,7 +54,6 @@ public class PlayerMatchStatsRepository {
         objectMapper.writerWithDefaultPrettyPrinter().writeValue(tempFile, current);
     }
 
-    // Vuelca el temporal a la BD real y lo borra (operación atómica)
     public synchronized void commitAndDeleteTemp(File tempFile) throws IOException {
         if (!tempFile.exists()) return;
         List<PlayerMatchStats> tempStats = objectMapper.readValue(tempFile, new TypeReference<>() {});
@@ -60,7 +63,7 @@ public class PlayerMatchStatsRepository {
             if (!existingIds.contains(s.getId())) existing.add(s);
         }
         writeToFile(existing);
-        tempFile.delete();
+        Files.delete(tempFile.toPath());
     }
 
     public File createLeagueTempFile(String league) {
@@ -73,6 +76,6 @@ public class PlayerMatchStatsRepository {
         File file = new File(dataPath);
         file.getParentFile().mkdirs();
         objectMapper.writerWithDefaultPrettyPrinter().writeValue(file, stats);
-        System.out.println("[PlayerMatchStats] Guardados " + stats.size() + " registros en: " + file.getAbsolutePath());
+        log.info("[PlayerMatchStats] Guardados {} registros en: {}", stats.size(), file.getAbsolutePath());
     }
 }

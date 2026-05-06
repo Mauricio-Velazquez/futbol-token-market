@@ -42,6 +42,7 @@ public class PlayerMatchStats {
     private Double crosses;
     private Double throughBalls;
 
+    // required by Jackson for deserialization
     public PlayerMatchStats() {}
 
     public String getId() { return id; }

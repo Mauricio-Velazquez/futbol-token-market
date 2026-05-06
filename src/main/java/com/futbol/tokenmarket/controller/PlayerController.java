@@ -40,12 +40,8 @@ public class PlayerController {
             @Parameter(description = "Filtrar por equipo", example = "Bayern Munich")
             @RequestParam(required = false) String team,
             @Parameter(description = "Filtrar por posición: GK, D, DM, M, AM, FW", example = "FW")
-            @RequestParam(required = false) String position) {
-        try {
-            return ResponseEntity.ok(service.getFilteredPlayers(league, team, position));
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().build();
-        }
+            @RequestParam(required = false) String position) throws IOException {
+        return ResponseEntity.ok(service.getFilteredPlayers(league, team, position));
     }
 
     @GetMapping("/{id}")
@@ -59,14 +55,10 @@ public class PlayerController {
     })
     public ResponseEntity<Player> getPlayerById(
             @Parameter(description = "ID del jugador", example = "ws_83532", required = true)
-            @PathVariable String id) {
-        try {
-            return service.getPlayerById(id)
-                    .map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
-        } catch (IOException e) {
-            return ResponseEntity.internalServerError().build();
-        }
+            @PathVariable String id) throws IOException {
+        return service.getPlayerById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // Other admin/scraping endpoints moved to AdminController; PlayerController exposes only public player endpoints.

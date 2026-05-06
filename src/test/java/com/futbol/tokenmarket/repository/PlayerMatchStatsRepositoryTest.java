@@ -160,7 +160,7 @@ class PlayerMatchStatsRepositoryTest {
         void sanitizesLeagueNameForFilename() {
             File temp = repository.createLeagueTempFile("Premier League");
 
-            assertThat(temp.getName()).isEqualTo("match_stats_Premier_League.tmp.json");
+            assertThat(temp).hasName("match_stats_Premier_League.tmp.json");
         }
 
         @Test
@@ -168,7 +168,7 @@ class PlayerMatchStatsRepositoryTest {
         void createsFileInSameDirectoryAsMainFile() {
             File temp = repository.createLeagueTempFile("La Liga");
 
-            assertThat(temp.getParentFile()).isEqualTo(dataFile.getParentFile());
+            assertThat(temp).hasParent(dataFile.getParentFile());
         }
 
         @Test

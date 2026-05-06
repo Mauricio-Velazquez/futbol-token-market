@@ -7,15 +7,21 @@ import com.futbol.tokenmarket.model.Team;
 import com.futbol.tokenmarket.repository.PlayerMatchStatsRepository;
 import com.futbol.tokenmarket.repository.PlayerRepository;
 import com.futbol.tokenmarket.repository.TeamRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class PlayerService {
+
+    private static final Logger log = LoggerFactory.getLogger(PlayerService.class);
+    private static final String LOG_PREFIX = "[PlayerService] ";
 
     private final PlayerRepository repository;
     private final TeamRepository teamRepository;
@@ -72,10 +78,10 @@ public class PlayerService {
     public List<PlayerMatchStats> scrapeMatchStatsByMatchday(String leagueName) throws IOException {
         List<String> matchUrls = whoScoredScraperService.scrapeLeagueMatchUrls(leagueName);
         if (matchUrls.isEmpty()) {
-            System.out.println("[PlayerService] " + leagueName + ": no se encontraron partidos en la página de la liga");
+            log.info(LOG_PREFIX + "{}: no se encontraron partidos en la página de la liga", leagueName);
             return List.of();
         }
-        System.out.println("[PlayerService] " + leagueName + ": " + matchUrls.size() + " partidos a procesar");
+        log.info(LOG_PREFIX + "{}: {} partidos a procesar", leagueName, matchUrls.size());
 
         Set<String> existingMatchIds = matchStatsRepository.getExistingMatchIds();
 
@@ -89,9 +95,10 @@ public class PlayerService {
                 if (!matchStats.isEmpty()) {
                     matchStatsRepository.appendToTemp(matchStats, tempFile);
                     total += matchStats.size();
-                    System.out.println("[PlayerService] " + leagueName + " partido " +
-                        matchUrl.replaceAll(".*/matches/(\\d+)/.*", "$1") +
-                        ": " + matchStats.size() + " stats guardados (total acum: " + total + ")");
+                    log.info(LOG_PREFIX + "{} partido {}: {} stats guardados (total acum: {})",
+                        leagueName,
+                        matchUrl.replaceAll(".*/matches/(\\d+)/.*", "$1"),
+                        matchStats.size(), total);
                 }
             }
             matchStatsRepository.commitAndDeleteTemp(tempFile);
@@ -100,14 +107,15 @@ public class PlayerService {
             if (!committed) {
                 try {
                     matchStatsRepository.commitAndDeleteTemp(tempFile);
-                    System.out.println("[PlayerService] " + leagueName + ": guardado parcial por fallo");
-                } catch (Exception e) {
-                    if (tempFile.exists()) tempFile.delete();
+                    log.info(LOG_PREFIX + "{}: guardado parcial por fallo", leagueName);
+                } catch (IOException e) {
+                    log.error(LOG_PREFIX + "{}: error en guardado parcial, eliminando temporal", leagueName, e);
+                    if (tempFile.exists()) Files.delete(tempFile.toPath());
                 }
             }
         }
 
-        System.out.println("[PlayerService] " + leagueName + ": " + total + " stats nuevos guardados");
+        log.info(LOG_PREFIX + "{}: {} stats nuevos guardados", leagueName, total);
         return List.of();
     }
 

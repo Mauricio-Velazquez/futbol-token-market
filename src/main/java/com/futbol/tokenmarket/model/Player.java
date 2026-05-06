@@ -9,6 +9,7 @@ public class Player {
     private String league;
     private String url;
 
+    // required by Jackson for deserialization
     public Player() {}
 
     public String getId() { return id; }
