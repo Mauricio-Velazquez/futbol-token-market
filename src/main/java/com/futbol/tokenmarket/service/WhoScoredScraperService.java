@@ -34,6 +34,7 @@ public class WhoScoredScraperService {
     private static final String WS_PREFIX = "[WhoScored] ";
     private static final String SEPARATOR = "\\|\\|\\|";
     private static final String MATCH_PREFIX = "[WhoScored] Partido ";
+    private static final String JS_CLICK_SCRIPT = "arguments[0].click();";
 
     private static final Map<String, String> LEAGUE_URLS = Map.of(
         "Premier League", WHOSCORED_BASE + "/regions/252/tournaments/2/england-premier-league",
@@ -42,6 +43,22 @@ public class WhoScoredScraperService {
         "Bundesliga",     WHOSCORED_BASE + "/regions/81/tournaments/3/germany-bundesliga",
         "Ligue 1",        WHOSCORED_BASE + "/regions/74/tournaments/22/france-ligue-1"
     );
+
+    private static class MatchInfo {
+        final String matchId;
+        final String matchUrl;
+        final String matchDate;
+        final String homeTeam;
+        final String awayTeam;
+
+        MatchInfo(String matchId, String matchUrl, String matchDate, String homeTeam, String awayTeam) {
+            this.matchId = matchId;
+            this.matchUrl = matchUrl;
+            this.matchDate = matchDate;
+            this.homeTeam = homeTeam;
+            this.awayTeam = awayTeam;
+        }
+    }
 
     public List<String> scrapeLeagueMatchUrls(String leagueName) {
         String leagueUrl = LEAGUE_URLS.get(leagueName);
@@ -64,14 +81,14 @@ public class WhoScoredScraperService {
             try {
                 WebElement toggleBtn = wait.until(ExpectedConditions.elementToBeClickable(
                     By.id("toggleCalendar")));
-                js.executeScript("arguments[0].click();", toggleBtn);
+                js.executeScript(JS_CLICK_SCRIPT, toggleBtn);
                 WebElement todayBtn = wait.until(ExpectedConditions.elementToBeClickable(
                     By.cssSelector("button[class*='todayBtn']")));
-                js.executeScript("arguments[0].click();", todayBtn);
+                js.executeScript(JS_CLICK_SCRIPT, todayBtn);
                 sleepMs(1000);
                 WebElement prevBtn = wait.until(ExpectedConditions.elementToBeClickable(
                     By.id("dayChangeBtn-prev")));
-                js.executeScript("arguments[0].click();", prevBtn);
+                js.executeScript(JS_CLICK_SCRIPT, prevBtn);
                 sleepMs(1500);
             } catch (Exception e) {
                 log.info(WS_PREFIX + "{} - error navegando al calendario: {}", leagueName, e.getMessage());
@@ -115,6 +132,9 @@ public class WhoScoredScraperService {
                 By.cssSelector("#sub-navigation a[href*='teamstatistics']")
             );
             String teamStatsUrl = teamStatsAnchor.getAttribute("href");
+            if (teamStatsUrl == null) {
+                throw new IllegalStateException("Team statistics URL not found in teamStatsAnchor element");
+            }
             log.info(WS_PREFIX + "Navegando a: {}", teamStatsUrl);
 
             driver.get(teamStatsUrl);
@@ -146,8 +166,8 @@ public class WhoScoredScraperService {
             if (parts.length == 2) {
                 String href = parts[0].trim();
                 String name = parts[1].trim().replaceAll("^\\d+\\.\\s*", "");
-                if (!name.isEmpty() && !teamUrls.containsKey(name)) {
-                    teamUrls.put(name, href);
+                if (!name.isEmpty()) {
+                    teamUrls.computeIfAbsent(name, k -> href);
                 }
             }
         }
@@ -202,20 +222,20 @@ public class WhoScoredScraperService {
         if (captured == null) return;
         for (String entry : captured) {
             String[] parts = entry.split(SEPARATOR, 3);
-            if (parts.length < 3 || parts[1].trim().isEmpty()) continue;
-
-            String playerId = "ws_" + extractPlayerIdFromUrl(parts[0].trim());
-            if (seenPlayerIds.contains(playerId)) continue;
-
-            seenPlayerIds.add(playerId);
-            Player p = new Player();
-            p.setId(playerId);
-            p.setUrl(parts[0].trim());
-            p.setName(parts[1].trim().replaceAll("^\\d+\\s*", "").trim());
-            p.setPosition(parts[2].trim());
-            p.setTeam(team.getName());
-            p.setLeague(team.getLeague());
-            players.add(p);
+            if (parts.length >= 3 && !parts[1].trim().isEmpty()) {
+                String playerId = "ws_" + extractPlayerIdFromUrl(parts[0].trim());
+                if (!seenPlayerIds.contains(playerId)) {
+                    seenPlayerIds.add(playerId);
+                    Player p = new Player();
+                    p.setId(playerId);
+                    p.setUrl(parts[0].trim());
+                    p.setName(parts[1].trim().replaceAll("^\\d+\\s*", "").trim());
+                    p.setPosition(parts[2].trim());
+                    p.setTeam(team.getName());
+                    p.setLeague(team.getLeague());
+                    players.add(p);
+                }
+            }
         }
     }
 
@@ -298,10 +318,9 @@ public class WhoScoredScraperService {
             wait.until(ExpectedConditions.presenceOfElementLocated(By.id("top-player-stats-summary-grid")));
 
             JavascriptExecutor js = (JavascriptExecutor) driver;
-            boolean latestOnly = true;
 
             List<String> summaryRows = pollTab(js, "player-matches-stats-summary", player.getName(), "Summary");
-            if (latestOnly && !summaryRows.isEmpty()) summaryRows = summaryRows.subList(0, 1);
+            if (!summaryRows.isEmpty()) summaryRows = summaryRows.subList(0, 1);
 
             if (!summaryRows.isEmpty()) {
                 String latestMatchId = extractMatchIdFromUrl(summaryRows.get(0).split(SEPARATOR, 2)[0].trim());
@@ -318,7 +337,7 @@ public class WhoScoredScraperService {
                 {"a[href='#player-matches-stats-offensive']", "player-matches-stats-offensive", "Offensive"},
                 {"a[href='#player-matches-stats-passing']",   "player-matches-stats-passing",   "Passing"}
             };
-            enrichStatsWithTabs(driver, wait, js, byMatchUrl, tabs, latestOnly, player.getName());
+            enrichStatsWithTabs(driver, wait, js, byMatchUrl, tabs, true, player.getName());
 
             results.addAll(byMatchUrl.values());
             log.info(WS_PREFIX + "{} - partidos nuevos: {}", player.getName(), results.size());
@@ -335,19 +354,20 @@ public class WhoScoredScraperService {
         Map<String, PlayerMatchStats> byMatchUrl = new LinkedHashMap<>();
         for (String row : summaryRows) {
             String[] p = row.split(SEPARATOR, -1);
-            if (p.length < 3) continue;
-            String matchUrl = p[0].trim();
-            String matchId  = extractMatchIdFromUrl(matchUrl);
-            if (existingMatchIds.contains(matchId)) continue;
-
-            PlayerMatchStats s = new PlayerMatchStats();
-            s.setId(matchId + "_" + player.getId());
-            s.setMatchId(matchId);
-            s.setPlayerId(player.getId());
-            s.setMatchUrl(matchUrl);
-            s.setOpponent(p[1].trim());
-            applyStatPairs(s, p, 2);
-            byMatchUrl.put(matchUrl, s);
+            if (p.length >= 3) {
+                String matchUrl = p[0].trim();
+                String matchId  = extractMatchIdFromUrl(matchUrl);
+                if (!existingMatchIds.contains(matchId)) {
+                    PlayerMatchStats s = new PlayerMatchStats();
+                    s.setId(matchId + "_" + player.getId());
+                    s.setMatchId(matchId);
+                    s.setPlayerId(player.getId());
+                    s.setMatchUrl(matchUrl);
+                    s.setOpponent(p[1].trim());
+                    applyStatPairs(s, p, 2);
+                    byMatchUrl.put(matchUrl, s);
+                }
+            }
         }
         return byMatchUrl;
     }
@@ -356,7 +376,7 @@ public class WhoScoredScraperService {
             Map<String, PlayerMatchStats> byMatchUrl, String[][] tabs,
             boolean latestOnly, String playerName) {
         for (String[] tab : tabs) {
-            processTab(driver, wait, js, tab, byMatchUrl, latestOnly, playerName);
+            processTab(driver, wait, js, tab, byMatchUrl, true, playerName);
         }
     }
 
@@ -366,7 +386,7 @@ public class WhoScoredScraperService {
         try {
             clickTab(driver, wait, js, tab[0], tab[1]);
             List<String> tabRows = pollTab(js, tab[1], playerName, tab[2]);
-            if (latestOnly && !tabRows.isEmpty()) tabRows = tabRows.subList(0, 1);
+            if (!tabRows.isEmpty()) tabRows = tabRows.subList(0, 1);
             for (String row : tabRows) {
                 String[] p = row.split(SEPARATOR, -1);
                 if (p.length >= 3) {
@@ -429,8 +449,9 @@ public class WhoScoredScraperService {
                 {"statistics-table-away-passing",   "away", "#live-player-away-passing",   "Away Passing"},
             };
 
+            MatchInfo matchInfo = new MatchInfo(matchId, matchUrl, matchDate, homeTeam, awayTeam);
             for (String[] ext : extractions) {
-                processExtraction(js, ext, matchId, matchUrl, matchDate, homeTeam, awayTeam, byPlayerId);
+                processExtraction(js, ext, matchInfo, byPlayerId);
             }
 
             results.addAll(byPlayerId.values());
@@ -445,8 +466,7 @@ public class WhoScoredScraperService {
     }
 
     private void processExtraction(JavascriptExecutor js, String[] ext,
-            String matchId, String matchUrl, String matchDate,
-            String homeTeam, String awayTeam, Map<String, PlayerMatchStats> byPlayerId) {
+            MatchInfo matchInfo, Map<String, PlayerMatchStats> byPlayerId) {
         String containerId = ext[0];
         String teamField   = ext[1];
         String tabHref     = ext[2];
@@ -462,10 +482,10 @@ public class WhoScoredScraperService {
             }
             String script = EXTRACT_CONTAINER_FN +
                 " return extractContainer('" + containerId + "', '" + teamField + "');";
-            List<String> rows = pollMatchRows(js, script, matchId, label);
-            mergeIntoStatsMap(rows, byPlayerId, matchId, matchUrl, matchDate, homeTeam, awayTeam);
+            List<String> rows = pollMatchRows(js, script, matchInfo.matchId, label);
+            mergeIntoStatsMap(rows, byPlayerId, matchInfo);
         } catch (Exception e) {
-            log.error(WS_PREFIX + "{} partido {}: {}", label, matchId, e.getMessage());
+            log.error(WS_PREFIX + "{} partido {}: {}", label, matchInfo.matchId, e.getMessage());
         }
     }
 
@@ -485,23 +505,22 @@ public class WhoScoredScraperService {
         return captured;
     }
 
-    private void mergeIntoStatsMap(List<String> rows, Map<String, PlayerMatchStats> map,
-            String matchId, String matchUrl, String matchDate, String homeTeam, String awayTeam) {
+    private void mergeIntoStatsMap(List<String> rows, Map<String, PlayerMatchStats> map, MatchInfo matchInfo) {
         for (String row : rows) {
             String[] parts = row.split(SEPARATOR, -1);
             if (parts.length < 2) continue;
             String playerHref = parts[0].trim();
             String teamField  = parts[1].trim();
             String playerId   = "ws_" + extractPlayerIdFromUrl(playerHref);
-            String opponent   = "home".equals(teamField) ? awayTeam : homeTeam;
+            String opponent   = "home".equals(teamField) ? matchInfo.awayTeam : matchInfo.homeTeam;
 
             PlayerMatchStats s = map.computeIfAbsent(playerId, pid -> {
                 PlayerMatchStats stat = new PlayerMatchStats();
-                stat.setId(matchId + "_" + pid);
-                stat.setMatchId(matchId);
+                stat.setId(matchInfo.matchId + "_" + pid);
+                stat.setMatchId(matchInfo.matchId);
                 stat.setPlayerId(pid);
-                stat.setMatchUrl(matchUrl);
-                stat.setDate(matchDate);
+                stat.setMatchUrl(matchInfo.matchUrl);
+                stat.setDate(matchInfo.matchDate);
                 stat.setOpponent(opponent);
                 return stat;
             });
@@ -510,7 +529,7 @@ public class WhoScoredScraperService {
     }
 
     private void clickTab(WebDriver driver, WebDriverWait wait, JavascriptExecutor js,
-                          String linkCss, String tabDivId) throws Exception {
+                          String linkCss, String tabDivId) {
         js.executeScript(
             "document.querySelectorAll('[style*=\"z-index: 2147483647\"],[style*=\"z-index:2147483647\"]')" +
             ".forEach(function(n){ n.remove(); });");
@@ -523,7 +542,7 @@ public class WhoScoredScraperService {
             el.click();
         } catch (Exception ex) {
             // Fallback: click via JS cuando hay overlays que bloquean el click por coordenadas
-            js.executeScript("arguments[0].click();", el);
+            js.executeScript(JS_CLICK_SCRIPT, el);
         }
 
         wait.until(ExpectedConditions.presenceOfElementLocated(

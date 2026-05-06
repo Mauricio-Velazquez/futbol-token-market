@@ -43,7 +43,9 @@ public class PlayerMatchStats {
     private Double throughBalls;
 
     // required by Jackson for deserialization
-    public PlayerMatchStats() {}
+    public PlayerMatchStats() {
+        // Constructor vacío necesario para la persistencia de datos (JPA)
+    }
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }

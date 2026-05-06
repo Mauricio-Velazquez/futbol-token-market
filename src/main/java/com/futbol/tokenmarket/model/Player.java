@@ -10,7 +10,9 @@ public class Player {
     private String url;
 
     // required by Jackson for deserialization
-    public Player() {}
+    public Player() {
+        // Constructor vacío necesario para la persistencia de datos (JPA)
+    }
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
