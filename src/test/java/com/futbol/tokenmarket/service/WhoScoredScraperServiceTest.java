@@ -308,6 +308,107 @@ class WhoScoredScraperServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("metodos utilitarios privados")
+    class PrivateUtilsTests {
+
+        @Test
+        @DisplayName("extrae correctamente el id de partido de la url y usa fallback")
+        void testExtractMatchIdFromUrl() throws Exception {
+            java.lang.reflect.Method m = WhoScoredScraperService.class
+                .getDeclaredMethod("extractMatchIdFromUrl", String.class);
+            m.setAccessible(true);
+
+            String id = (String) m.invoke(service, "https://example.com/matches/789/show");
+            assertThat(id).isEqualTo("789");
+
+            String fallback = (String) m.invoke(service, "not-a-match-url");
+            assertThat(fallback).isNotNull();
+        }
+
+        @Test
+        @DisplayName("extrae correctamente el id de jugador de la url y usa fallback")
+        void testExtractPlayerIdFromUrl() throws Exception {
+            java.lang.reflect.Method m = WhoScoredScraperService.class
+                .getDeclaredMethod("extractPlayerIdFromUrl", String.class);
+            m.setAccessible(true);
+
+            String id = (String) m.invoke(service, "https://example.com/players/456/profile");
+            assertThat(id).isEqualTo("456");
+
+            String fallback = (String) m.invoke(service, "no-player-here");
+            assertThat(fallback).isNotNull();
+        }
+
+        @Test
+        @DisplayName("trySetIntStat y trySetDoubleStat manejan valores y no numericos")
+        void testTrySetStats() throws Exception {
+            PlayerMatchStats s = new PlayerMatchStats();
+
+            java.lang.reflect.Method tryInt = WhoScoredScraperService.class
+                .getDeclaredMethod("trySetIntStat", java.util.function.IntConsumer.class, String.class);
+            java.lang.reflect.Method tryDouble = WhoScoredScraperService.class
+                .getDeclaredMethod("trySetDoubleStat", java.util.function.DoubleConsumer.class, String.class);
+            tryInt.setAccessible(true);
+            tryDouble.setAccessible(true);
+
+            tryInt.invoke(service, (java.util.function.IntConsumer) s::setMinutesPlayed, "45");
+            tryDouble.invoke(service, (java.util.function.DoubleConsumer) s::setGoals, "2.5");
+
+            assertThat(s.getMinutesPlayed()).isEqualTo(45);
+            assertThat(s.getGoals()).isEqualTo(2.5);
+
+            tryInt.invoke(service, (java.util.function.IntConsumer) s::setMinutesPlayed, "abc");
+            tryDouble.invoke(service, (java.util.function.DoubleConsumer) s::setGoals, "x.y");
+            assertThat(s.getMinutesPlayed()).isEqualTo(45);
+            assertThat(s.getGoals()).isEqualTo(2.5);
+        }
+
+        @Test
+        @DisplayName("mapStat y applyStatPairs asignan estadisticas esperadas")
+        void testMapStatAndApplyStatPairs() throws Exception {
+            PlayerMatchStats s = new PlayerMatchStats();
+            String[] parts = new String[] { "href", "home", "position=GK", "goaltotal=1.0", "minsplayed=90" };
+
+            java.lang.reflect.Method apply = WhoScoredScraperService.class
+                .getDeclaredMethod("applyStatPairs", PlayerMatchStats.class, String[].class, int.class);
+            apply.setAccessible(true);
+
+            apply.invoke(service, s, parts, 2);
+
+            assertThat(s.getPosition()).isEqualTo("GK");
+            assertThat(s.getGoals()).isEqualTo(1.0);
+            assertThat(s.getMinutesPlayed()).isEqualTo(90);
+        }
+
+        @Test
+        @DisplayName("mergeIntoStatsMap construye y llena PlayerMatchStats a partir de filas")
+        void testMergeIntoStatsMap() throws Exception {
+            String row = "http://example.com/players/321" + SEPARATOR + "home" + SEPARATOR + "position=ST" + SEPARATOR + "goaltotal=2";
+            List<String> rows = List.of(row);
+            Map<String, PlayerMatchStats> map = new java.util.LinkedHashMap<>();
+            Class<?> matchInfoClass = null;
+            for (Class<?> c : WhoScoredScraperService.class.getDeclaredClasses()) {
+                if (c.getSimpleName().equals("MatchInfo")) { matchInfoClass = c; break; }
+            }
+            java.lang.reflect.Method m = WhoScoredScraperService.class
+                .getDeclaredMethod("mergeIntoStatsMap", List.class, Map.class, matchInfoClass);
+            m.setAccessible(true);
+
+            java.lang.reflect.Constructor<?> ci = matchInfoClass.getDeclaredConstructor(String.class, String.class, String.class, String.class, String.class);
+            ci.setAccessible(true);
+            Object matchInfo = ci.newInstance("m321", "http://match/321", "01-Jan-23", "Home FC", "Away FC");
+
+            m.invoke(service, rows, map, matchInfo);
+
+            assertThat(map).hasSize(1);
+            PlayerMatchStats stats = map.values().iterator().next();
+            assertThat(stats.getPlayerId()).startsWith("ws_");
+            assertThat(stats.getPosition()).isEqualTo("ST");
+            assertThat(stats.getGoals()).isEqualTo(2.0);
+        }
+    }
+
     // Metodos auxiliares para invocar metodos privados por reflection
     @SuppressWarnings("unchecked")
     private Map<String, PlayerMatchStats> invokePrivateBuildStatsMap(
