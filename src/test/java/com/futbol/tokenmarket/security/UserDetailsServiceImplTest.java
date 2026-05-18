@@ -12,7 +12,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import java.io.IOException;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,7 +38,7 @@ class UserDetailsServiceImplTest {
 
         @Test
         @DisplayName("devuelve UserDetails con el username correcto cuando el usuario existe")
-        void returnsUserDetailsWhenUserExists() throws IOException {
+        void returnsUserDetailsWhenUserExists() {
             when(userRepository.findByUsername("jugador99"))
                 .thenReturn(Optional.of(new User("1", "jugador99", "hashed-password")));
 
@@ -50,7 +49,7 @@ class UserDetailsServiceImplTest {
 
         @Test
         @DisplayName("devuelve UserDetails con la contraseña hasheada tal como está guardada")
-        void returnsUserDetailsWithStoredPassword() throws IOException {
+        void returnsUserDetailsWithStoredPassword() {
             when(userRepository.findByUsername("jugador99"))
                 .thenReturn(Optional.of(new User("1", "jugador99", "$2a$hashed")));
 
@@ -61,7 +60,7 @@ class UserDetailsServiceImplTest {
 
         @Test
         @DisplayName("asigna el rol USER al usuario cargado")
-        void assignsUserRole() throws IOException {
+        void assignsUserRole() {
             when(userRepository.findByUsername("jugador99"))
                 .thenReturn(Optional.of(new User("1", "jugador99", "hashed")));
 
@@ -74,7 +73,7 @@ class UserDetailsServiceImplTest {
 
         @Test
         @DisplayName("lanza UsernameNotFoundException cuando el usuario no existe")
-        void throwsUsernameNotFoundWhenUserDoesNotExist() throws IOException {
+        void throwsUsernameNotFoundWhenUserDoesNotExist() {
             when(userRepository.findByUsername("fantasma")).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> service.loadUserByUsername("fantasma"))
@@ -82,9 +81,9 @@ class UserDetailsServiceImplTest {
         }
 
         @Test
-        @DisplayName("convierte IOException del repositorio en UsernameNotFoundException")
-        void wrapsIOExceptionAsUsernameNotFoundException() throws IOException {
-            when(userRepository.findByUsername("jugador99")).thenThrow(new IOException("disco lleno"));
+        @DisplayName("convierte una excepción del repositorio en UsernameNotFoundException")
+        void wrapsRepositoryExceptionAsUsernameNotFoundException() {
+            when(userRepository.findByUsername("jugador99")).thenThrow(new RuntimeException("DB error"));
 
             assertThatThrownBy(() -> service.loadUserByUsername("jugador99"))
                 .isInstanceOf(UsernameNotFoundException.class)

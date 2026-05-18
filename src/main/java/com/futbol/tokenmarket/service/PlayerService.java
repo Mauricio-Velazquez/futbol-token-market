@@ -11,10 +11,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,7 +39,7 @@ public class PlayerService {
         this.whoScoredScraperService = whoScoredScraperService;
     }
 
-    public List<LeagueStats> getLeagueStats() throws IOException {
+    public List<LeagueStats> getLeagueStats() {
         List<Player> allPlayers = repository.findAll();
 
         return allPlayers.stream()
@@ -49,23 +50,23 @@ public class PlayerService {
                 .toList();
     }
 
-    public List<Player> getAllPlayers() throws IOException {
+    public List<Player> getAllPlayers() {
         return repository.findAll();
     }
 
-    public List<Player> getPlayersByLeague(String league) throws IOException {
+    public List<Player> getPlayersByLeague(String league) {
         return repository.findByLeague(league);
     }
 
-    public List<Player> getFilteredPlayers(String league, String team, String position) throws IOException {
+    public List<Player> getFilteredPlayers(String league, String team, String position) {
         return repository.findByFilters(league, team, position);
     }
 
-    public Optional<Player> getPlayerById(String id) throws IOException {
+    public Optional<Player> getPlayerById(String id) {
         return repository.findById(id);
     }
 
-    public List<Team> scrapeTeamUrls(String leagueName) throws IOException {
+    public List<Team> scrapeTeamUrls(String leagueName) {
         Map<String, String> scraped = whoScoredScraperService.scrapeTeamUrls(leagueName);
 
         List<Team> teams = scraped.entrySet().stream()
@@ -75,7 +76,7 @@ public class PlayerService {
         return teamRepository.saveTeamsForLeague(leagueName, teams);
     }
 
-    public List<PlayerMatchStats> scrapeMatchStatsByMatchday(String leagueName) throws IOException {
+    public List<PlayerMatchStats> scrapeMatchStatsByMatchday(String leagueName) {
         List<String> matchUrls = whoScoredScraperService.scrapeLeagueMatchUrls(leagueName);
         if (matchUrls.isEmpty()) {
             log.info(LOG_PREFIX + "{}: no se encontraron partidos en la página de la liga", leagueName);
@@ -84,34 +85,18 @@ public class PlayerService {
         log.info(LOG_PREFIX + "{}: {} partidos a procesar", leagueName, matchUrls.size());
 
         Set<String> existingMatchIds = matchStatsRepository.getExistingMatchIds();
-
-        File tempFile = matchStatsRepository.createLeagueTempFile(leagueName);
         int total = 0;
-        boolean committed = false;
-        try {
-            for (String matchUrl : matchUrls) {
-                List<PlayerMatchStats> matchStats =
-                    whoScoredScraperService.scrapeMatchPlayerStats(matchUrl, existingMatchIds);
-                if (!matchStats.isEmpty()) {
-                    matchStatsRepository.appendToTemp(matchStats, tempFile);
-                    total += matchStats.size();
-                    log.info(LOG_PREFIX + "{} partido {}: {} stats guardados (total acum: {})",
-                        leagueName,
-                        matchUrl.replaceAll(".*/matches/(\\d+)/.*", "$1"),
-                        matchStats.size(), total);
-                }
-            }
-            matchStatsRepository.commitAndDeleteTemp(tempFile);
-            committed = true;
-        } finally {
-            if (!committed) {
-                try {
-                    matchStatsRepository.commitAndDeleteTemp(tempFile);
-                    log.info(LOG_PREFIX + "{}: guardado parcial por fallo", leagueName);
-                } catch (IOException e) {
-                    log.error(LOG_PREFIX + "{}: error en guardado parcial, eliminando temporal", leagueName, e);
-                    if (tempFile.exists()) Files.delete(tempFile.toPath());
-                }
+        for (String matchUrl : matchUrls) {
+            List<PlayerMatchStats> matchStats =
+                whoScoredScraperService.scrapeMatchPlayerStats(matchUrl, existingMatchIds);
+            if (!matchStats.isEmpty()) {
+                matchStatsRepository.saveAllIfNew(matchStats);
+                total += matchStats.size();
+                log.info(LOG_PREFIX + "{} partido {}: {} stats guardados (total acum: {})",
+                    leagueName,
+                    matchUrl.replaceAll(".*/matches/(\\d+)/.*", "$1"),
+                    matchStats.size(), total);
+                matchStats.forEach(s -> existingMatchIds.add(s.getMatchId()));
             }
         }
 
@@ -119,7 +104,7 @@ public class PlayerService {
         return List.of();
     }
 
-    public List<Player> scrapePlayersFromWhoScored(String leagueName) throws IOException {
+    public List<Player> scrapePlayersFromWhoScored(String leagueName) {
         List<Team> teams = teamRepository.findByLeague(leagueName);
         if (teams.isEmpty()) {
             throw new IllegalArgumentException("No hay equipos guardados para la liga: " + leagueName +

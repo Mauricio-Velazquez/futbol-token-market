@@ -1,33 +1,30 @@
 package com.futbol.tokenmarket.repository;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.futbol.tokenmarket.model.Player;
-import org.junit.jupiter.api.BeforeEach;
+import com.futbol.tokenmarket.model.Team;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.Import;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@DataJpaTest
+@Import(PlayerRepository.class)
 @DisplayName("PlayerRepository")
 class PlayerRepositoryTest {
 
-    @TempDir
-    Path tempDir;
+    @Autowired
+    private TestEntityManager testEntityManager;
 
+    @Autowired
     private PlayerRepository repository;
-
-    @BeforeEach
-    void setUp() {
-        String path = tempDir.resolve("players.json").toAbsolutePath().toString();
-        repository = new PlayerRepository(new ObjectMapper(), path);
-    }
 
     @Nested
     @DisplayName("findByLeague")
@@ -35,7 +32,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("devuelve sólo los jugadores de la liga indicada")
-        void returnsOnlyPlayersFromThatLeague() throws IOException {
+        void returnsOnlyPlayersFromThatLeague() {
             repository.save(player("p1", "Messi", "La Liga", "Inter Miami", "FW"));
             repository.save(player("p2", "Haaland", "Premier League", "Man City", "FW"));
             repository.save(player("p3", "Pedri", "La Liga", "Barcelona", "M(C)"));
@@ -48,7 +45,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("la búsqueda por liga es case-insensitive")
-        void leagueFilterIsCaseInsensitive() throws IOException {
+        void leagueFilterIsCaseInsensitive() {
             repository.save(player("p1", "Mbappé", "ligue 1", "PSG", "FW"));
 
             List<Player> result = repository.findByLeague("Ligue 1");
@@ -58,7 +55,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("devuelve lista vacía cuando ningún jugador pertenece a esa liga")
-        void returnsEmptyWhenNoPlayerBelongsToLeague() throws IOException {
+        void returnsEmptyWhenNoPlayerBelongsToLeague() {
             repository.save(player("p1", "Messi", "La Liga", "Inter Miami", "FW"));
 
             List<Player> result = repository.findByLeague("Bundesliga");
@@ -73,7 +70,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("filtra porteros con posición 'GK'")
-        void filtersGoalkeepers() throws IOException {
+        void filtersGoalkeepers() {
             repository.save(player("p1", "Ter Stegen", "La Liga", "Barcelona", "GK"));
             repository.save(player("p2", "Pedri", "La Liga", "Barcelona", "M(C)"));
 
@@ -84,7 +81,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("filtra defensas con patrón 'D'")
-        void filtersDefenders() throws IOException {
+        void filtersDefenders() {
             repository.save(player("p1", "Carvajal", "La Liga", "Real Madrid", "D(R)"));
             repository.save(player("p2", "Vinicius", "La Liga", "Real Madrid", "FW,AM(L)"));
 
@@ -95,7 +92,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("filtra mediocampistas defensivos con patrón 'DM'")
-        void filtersDefensiveMidfielders() throws IOException {
+        void filtersDefensiveMidfielders() {
             repository.save(player("p1", "Casemiro", "Premier League", "Man United", "DML"));
             repository.save(player("p2", "Bellingham", "La Liga", "Real Madrid", "M(C),AM(C)"));
 
@@ -106,7 +103,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("filtra mediocampistas con patrón 'M'")
-        void filtersMidfielders() throws IOException {
+        void filtersMidfielders() {
             repository.save(player("p1", "Pedri", "La Liga", "Barcelona", "M(C),AM(C)"));
             repository.save(player("p2", "Yamal", "La Liga", "Barcelona", "AM(R),FW"));
 
@@ -117,7 +114,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("filtra mediapuntas con patrón 'AM'")
-        void filtersAttackingMidfielders() throws IOException {
+        void filtersAttackingMidfielders() {
             repository.save(player("p1", "Dybala", "Serie A", "Roma", "AM(C)"));
             repository.save(player("p2", "Lukaku", "Serie A", "Roma", "FW"));
 
@@ -128,7 +125,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("filtra delanteros con patrón 'FW'")
-        void filtersForwards() throws IOException {
+        void filtersForwards() {
             repository.save(player("p1", "Giroud", "Serie A", "Milan", "FW"));
             repository.save(player("p2", "Hernandez", "Serie A", "Milan", "D(L)"));
 
@@ -139,7 +136,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("un jugador multiposición aparece en el filtro de cada posición que ocupa")
-        void multiPositionPlayerMatchesEachOfTheirPositions() throws IOException {
+        void multiPositionPlayerMatchesEachOfTheirPositions() {
             repository.save(player("p1", "Bellingham", "La Liga", "Real Madrid", "M(C),AM(C)"));
 
             assertThat(repository.findByFilters(null, null, "M"))
@@ -150,7 +147,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("ignora el filtro de posición cuando no es un código reconocido")
-        void ignoresUnknownPositionCode() throws IOException {
+        void ignoresUnknownPositionCode() {
             repository.save(player("p1", "Messi", "La Liga", "Inter Miami", "FW"));
 
             List<Player> result = repository.findByFilters(null, null, "UNKNOWN");
@@ -165,7 +162,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("combina liga y equipo correctamente")
-        void combinesLeagueAndTeamFilters() throws IOException {
+        void combinesLeagueAndTeamFilters() {
             repository.save(player("p1", "Pedri", "La Liga", "Barcelona", "M(C)"));
             repository.save(player("p2", "Bellingham", "La Liga", "Real Madrid", "M(C)"));
             repository.save(player("p3", "Haaland", "Premier League", "Man City", "FW"));
@@ -177,7 +174,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("combina liga, equipo y posición")
-        void combinesAllThreeFilters() throws IOException {
+        void combinesAllThreeFilters() {
             repository.save(player("p1", "Pedri", "La Liga", "Barcelona", "M(C)"));
             repository.save(player("p2", "Yamal", "La Liga", "Barcelona", "AM(R),FW"));
             repository.save(player("p3", "Ter Stegen", "La Liga", "Barcelona", "GK"));
@@ -189,7 +186,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("devuelve todos cuando todos los filtros son nulos")
-        void returnsAllPlayersWhenNoFiltersApplied() throws IOException {
+        void returnsAllPlayersWhenNoFiltersApplied() {
             repository.save(player("p1", "Messi", "La Liga", "Inter Miami", "FW"));
             repository.save(player("p2", "Haaland", "Premier League", "Man City", "FW"));
 
@@ -205,7 +202,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("guarda un jugador nuevo y lo recupera por ID")
-        void savesPlayerAndRetrievesById() throws IOException {
+        void savesPlayerAndRetrievesById() {
             Player p = player("p1", "Messi", "La Liga", "Inter Miami", "FW");
 
             repository.save(p);
@@ -217,7 +214,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("actualizar un jugador existente reemplaza sus datos")
-        void savingExistingPlayerReplacesIt() throws IOException {
+        void savingExistingPlayerReplacesIt() {
             repository.save(player("p1", "Messi", "La Liga", "Inter Miami", "FW"));
             Player updated = player("p1", "Lionel Messi", "MLS", "Inter Miami", "FW");
 
@@ -229,7 +226,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("eliminar un jugador devuelve true y lo remueve de la lista")
-        void deletingPlayerReturnsTrueAndRemovesIt() throws IOException {
+        void deletingPlayerReturnsTrueAndRemovesIt() {
             repository.save(player("p1", "Messi", "La Liga", "Inter Miami", "FW"));
 
             boolean result = repository.deleteById("p1");
@@ -240,7 +237,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("eliminar un ID inexistente devuelve false")
-        void deletingNonExistentPlayerReturnsFalse() throws IOException {
+        void deletingNonExistentPlayerReturnsFalse() {
             boolean result = repository.deleteById("fantasma");
 
             assertThat(result).isFalse();
@@ -253,7 +250,7 @@ class PlayerRepositoryTest {
 
         @Test
         @DisplayName("reemplaza todos los jugadores de la liga sin afectar otras ligas")
-        void replacesLeaguePlayersWithoutAffectingOtherLeagues() throws IOException {
+        void replacesLeaguePlayersWithoutAffectingOtherLeagues() {
             repository.save(player("p1", "Haaland", "Premier League", "Man City", "FW"));
             repository.save(player("p2", "Messi", "La Liga", "Inter Miami", "FW"));
 
@@ -269,7 +266,8 @@ class PlayerRepositoryTest {
 
     // --- helpers ---
 
-    private Player player(String id, String name, String league, String team, String position) {
+    private Player player(String id, String name, String league, String teamName, String position) {
+        Team team = testEntityManager.persistAndFlush(new Team(teamName, "", league));
         Player p = new Player();
         p.setId(id);
         p.setName(name);

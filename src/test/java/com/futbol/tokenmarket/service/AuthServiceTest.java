@@ -19,7 +19,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.io.IOException;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,7 +49,7 @@ class AuthServiceTest {
 
         @Test
         @DisplayName("devuelve un AuthResponse con token y username cuando el registro es exitoso")
-        void returnsAuthResponseWithTokenAndUsername() throws IOException {
+        void returnsAuthResponseWithTokenAndUsername() {
             RegisterRequest request = new RegisterRequest("jugador99", "secret123", "secret123");
             when(userRepository.findByUsername("jugador99")).thenReturn(Optional.empty());
             when(passwordEncoder.encode("secret123")).thenReturn("hashed");
@@ -75,7 +74,7 @@ class AuthServiceTest {
 
         @Test
         @DisplayName("lanza excepción cuando el nombre de usuario ya está registrado")
-        void throwsExceptionWhenUsernameAlreadyTaken() throws IOException {
+        void throwsExceptionWhenUsernameAlreadyTaken() {
             RegisterRequest request = new RegisterRequest("jugador99", "secret123", "secret123");
             when(userRepository.findByUsername("jugador99"))
                 .thenReturn(Optional.of(new User("1", "jugador99", "hash")));
@@ -87,7 +86,7 @@ class AuthServiceTest {
 
         @Test
         @DisplayName("encripta la contraseña antes de guardar el usuario")
-        void encodesPasswordBeforePersisting() throws IOException {
+        void encodesPasswordBeforePersisting() {
             RegisterRequest request = new RegisterRequest("jugador99", "secret123", "secret123");
             when(userRepository.findByUsername("jugador99")).thenReturn(Optional.empty());
             when(passwordEncoder.encode("secret123")).thenReturn("hashed-password");
@@ -103,7 +102,7 @@ class AuthServiceTest {
 
         @Test
         @DisplayName("asigna un ID nuevo al usuario registrado")
-        void assignsNewIdToRegisteredUser() throws IOException {
+        void assignsNewIdToRegisteredUser() {
             RegisterRequest request = new RegisterRequest("jugador99", "secret123", "secret123");
             when(userRepository.findByUsername("jugador99")).thenReturn(Optional.empty());
             when(passwordEncoder.encode(anyString())).thenReturn("hashed");

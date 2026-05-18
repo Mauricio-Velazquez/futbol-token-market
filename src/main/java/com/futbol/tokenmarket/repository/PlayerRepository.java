@@ -1,14 +1,12 @@
 package com.futbol.tokenmarket.repository;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.futbol.tokenmarket.model.Player;
-import org.springframework.beans.factory.annotation.Value;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -16,32 +14,6 @@ import java.util.regex.Pattern;
 
 @Repository
 public class PlayerRepository {
-
-    private final ObjectMapper objectMapper;
-    private final String dataPath;
-
-    public PlayerRepository(ObjectMapper objectMapper, @Value("${app.players.path}") String dataPath) {
-        this.objectMapper = objectMapper;
-        this.dataPath = dataPath;
-    }
-
-    public List<Player> findAll() throws IOException {
-        File file = new File(dataPath);
-        if (!file.exists()) return new ArrayList<>();
-        return objectMapper.readValue(file, new TypeReference<>() {});
-    }
-
-    public Optional<Player> findById(String id) throws IOException {
-        return findAll().stream()
-                .filter(p -> p.getId().equals(id))
-                .findFirst();
-    }
-
-    public List<Player> findByLeague(String league) throws IOException {
-        return findAll().stream()
-                .filter(p -> p.getLeague().equalsIgnoreCase(league))
-                .toList();
-    }
 
     private static final Map<String, Pattern> POSITION_PATTERNS = Map.of(
         "GK", Pattern.compile("(?:^|,)GK(?:,|$)"),
@@ -52,63 +24,73 @@ public class PlayerRepository {
         "FW", Pattern.compile("(?:^|,)FW(?:,|$)")
     );
 
-    public List<Player> findByFilters(String league, String team, String position) throws IOException {
-        List<Player> players = findAll();
+    @PersistenceContext
+    private EntityManager em;
 
-        if (league != null && !league.isBlank()) {
-            players = players.stream()
-                    .filter(p -> p.getLeague().equalsIgnoreCase(league))
-                    .toList();
-        }
-        if (team != null && !team.isBlank()) {
-            players = players.stream()
-                    .filter(p -> p.getTeam().equalsIgnoreCase(team))
-                    .toList();
-        }
+    public List<Player> findAll() {
+        return em.createQuery("SELECT p FROM Player p", Player.class).getResultList();
+    }
+
+    public Optional<Player> findById(String id) {
+        return Optional.ofNullable(em.find(Player.class, id));
+    }
+
+    public List<Player> findByLeague(String league) {
+        return em.createQuery(
+                "SELECT p FROM Player p WHERE LOWER(p.league) = LOWER(:league)", Player.class)
+            .setParameter("league", league)
+            .getResultList();
+    }
+
+    public List<Player> findByFilters(String league, String team, String position) {
+        StringBuilder jpql = new StringBuilder("SELECT p FROM Player p WHERE 1=1");
+        if (league != null && !league.isBlank()) jpql.append(" AND LOWER(p.league) = LOWER(:league)");
+        if (team != null && !team.isBlank()) jpql.append(" AND LOWER(p.team.name) = LOWER(:team)");
+
+        TypedQuery<Player> query = em.createQuery(jpql.toString(), Player.class);
+        if (league != null && !league.isBlank()) query.setParameter("league", league);
+        if (team != null && !team.isBlank()) query.setParameter("team", team);
+
+        List<Player> players = query.getResultList();
+
         if (position != null && !position.isBlank()) {
             Pattern pattern = POSITION_PATTERNS.get(position.toUpperCase());
             if (pattern != null) {
                 players = players.stream()
-                        .filter(p -> pattern.matcher(p.getPosition()).find())
-                        .toList();
+                    .filter(p -> pattern.matcher(p.getPosition()).find())
+                    .toList();
             }
         }
         return players;
     }
 
-    public Player save(Player player) throws IOException {
-        List<Player> players = findAll();
-        players.removeIf(p -> p.getId().equals(player.getId()));
-        players.add(player);
-        writeToFile(players);
-        return player;
+    @Transactional
+    public Player save(Player player) {
+        return em.merge(player);
     }
 
-    public boolean saveAll(List<Player> players) throws IOException {
-        List<Player> existing = findAll();
-        existing.addAll(players);
-        writeToFile(existing);
+    @Transactional
+    public boolean saveAll(List<Player> players) {
+        players.forEach(em::merge);
         return true;
     }
 
-    public synchronized boolean savePlayersForLeague(String league, List<Player> players) throws IOException {
-        List<Player> existing = findAll();
-        existing.removeIf(p -> p.getLeague().equalsIgnoreCase(league));
-        existing.addAll(players);
-        writeToFile(existing);
+    @Transactional
+    public synchronized boolean savePlayersForLeague(String league, List<Player> players) {
+        em.createQuery("DELETE FROM Player p WHERE LOWER(p.league) = LOWER(:league)")
+            .setParameter("league", league)
+            .executeUpdate();
+        em.flush();
+        em.clear();
+        players.forEach(em::merge);
         return true;
     }
 
-    public boolean deleteById(String id) throws IOException {
-        List<Player> players = findAll();
-        boolean removed = players.removeIf(p -> p.getId().equals(id));
-        if (removed) writeToFile(players);
-        return removed;
-    }
-
-    private void writeToFile(List<Player> players) throws IOException {
-        File file = new File(dataPath);
-        file.getParentFile().mkdirs();
-        objectMapper.writerWithDefaultPrettyPrinter().writeValue(file, players);
+    @Transactional
+    public boolean deleteById(String id) {
+        Player player = em.find(Player.class, id);
+        if (player == null) return false;
+        em.remove(player);
+        return true;
     }
 }

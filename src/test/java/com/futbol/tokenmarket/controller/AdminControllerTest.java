@@ -12,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
-import java.io.IOException;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,7 +56,7 @@ class AdminControllerTest {
 
         @Test
         @DisplayName("devuelve 200 cuando el scrapeo de equipos es exitoso")
-        void returnsOkWhenScrapeSucceeds() throws IOException {
+        void returnsOkWhenScrapeSucceeds() {
             Team team = new Team("Barcelona", "https://example.com/barcelona", "La Liga");
             when(playerService.scrapeTeamUrls("La Liga")).thenReturn(List.of(team));
 
@@ -69,7 +68,7 @@ class AdminControllerTest {
 
         @Test
         @DisplayName("devuelve 400 cuando la liga no es valida")
-        void returnsBadRequestWhenLeagueIsInvalid() throws IOException {
+        void returnsBadRequestWhenLeagueIsInvalid() {
             when(playerService.scrapeTeamUrls("Inexistente")).thenThrow(new IllegalArgumentException("liga invalida"));
 
             var result = adminController.getTeamUrlsAdmin("Inexistente");
@@ -79,8 +78,8 @@ class AdminControllerTest {
 
         @Test
         @DisplayName("devuelve 500 cuando falla el scraping")
-        void returnsInternalServerErrorWhenScrapeFails() throws IOException {
-            when(playerService.scrapeTeamUrls("La Liga")).thenThrow(new IOException("boom"));
+        void returnsInternalServerErrorWhenScrapeFails() {
+            when(playerService.scrapeTeamUrls("La Liga")).thenThrow(new RuntimeException("boom"));
 
             var result = adminController.getTeamUrlsAdmin("La Liga");
 

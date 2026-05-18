@@ -217,7 +217,7 @@ class WhoScoredScraperServiceTest {
             Player player = players.get(0);
             assertThat(player.getName()).isEqualTo("Mohamed Salah");
             assertThat(player.getPosition()).isEqualTo("ST");
-            assertThat(player.getTeam()).isEqualTo("Liverpool");
+            assertThat(player.getTeam().getName()).isEqualTo("Liverpool");
             assertThat(player.getLeague()).isEqualTo("Premier League");
         }
 
@@ -656,7 +656,7 @@ class WhoScoredScraperServiceTest {
                 assertThat(result).hasSize(1);
                 assertThat(result.get(0).getId()).isEqualTo("ws_123");
                 assertThat(result.get(0).getName()).isEqualTo("Mohamed Salah");
-                assertThat(result.get(0).getTeam()).isEqualTo("Liverpool");
+                assertThat(result.get(0).getTeam().getName()).isEqualTo("Liverpool");
                 verify(mocked.constructed().get(0), atLeastOnce()).quit();
             }
         }

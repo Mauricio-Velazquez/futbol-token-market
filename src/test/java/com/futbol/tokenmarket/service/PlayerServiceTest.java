@@ -15,22 +15,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doThrow;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PlayerService")
@@ -57,7 +51,7 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("agrupa los jugadores por liga y cuenta correctamente")
-        void groupsPlayersByLeagueAndCountsThem() throws IOException {
+        void groupsPlayersByLeagueAndCountsThem() {
             List<Player> players = List.of(
                 playerWithLeague("Premier League"),
                 playerWithLeague("Premier League"),
@@ -76,7 +70,7 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("devuelve las ligas ordenadas alfabéticamente")
-        void returnsLeaguesSortedAlphabetically() throws IOException {
+        void returnsLeaguesSortedAlphabetically() {
             List<Player> players = List.of(
                 playerWithLeague("Serie A"),
                 playerWithLeague("Bundesliga"),
@@ -93,7 +87,7 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("devuelve lista vacía cuando no hay jugadores")
-        void returnsEmptyListWhenNoPlayersExist() throws IOException {
+        void returnsEmptyListWhenNoPlayersExist() {
             when(playerRepository.findAll()).thenReturn(List.of());
 
             List<LeagueStats> stats = playerService.getLeagueStats();
@@ -108,7 +102,7 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("delega la consulta al repositorio sin transformaciones")
-        void delegatesToRepositoryWithoutTransformation() throws IOException {
+        void delegatesToRepositoryWithoutTransformation() {
             List<Player> expected = List.of(playerWithLeague("La Liga"));
             when(playerRepository.findAll()).thenReturn(expected);
 
@@ -124,7 +118,7 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("devuelve el jugador cuando existe")
-        void returnsPlayerWhenFound() throws IOException {
+        void returnsPlayerWhenFound() {
             Player player = playerWithLeague("La Liga");
             player.setId("p1");
             when(playerRepository.findById("p1")).thenReturn(Optional.of(player));
@@ -136,7 +130,7 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("devuelve vacío cuando el jugador no existe")
-        void returnsEmptyWhenPlayerNotFound() throws IOException {
+        void returnsEmptyWhenPlayerNotFound() {
             when(playerRepository.findById("inexistente")).thenReturn(Optional.empty());
 
             Optional<Player> result = playerService.getPlayerById("inexistente");
@@ -151,7 +145,7 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("delega al repositorio con la liga exacta")
-        void delegatesToRepositoryWithExactLeague() throws IOException {
+        void delegatesToRepositoryWithExactLeague() {
             List<Player> expected = List.of(playerWithLeague("Bundesliga"));
             when(playerRepository.findByLeague("Bundesliga")).thenReturn(expected);
 
@@ -167,7 +161,7 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("delega los tres filtros al repositorio sin modificarlos")
-        void passesAllThreeFiltersToRepository() throws IOException {
+        void passesAllThreeFiltersToRepository() {
             List<Player> expected = List.of(playerWithLeague("La Liga"));
             when(playerRepository.findByFilters("La Liga", "Barcelona", "GK")).thenReturn(expected);
 
@@ -178,7 +172,7 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("acepta filtros nulos y los pasa al repositorio tal cual")
-        void passesNullFiltersToRepository() throws IOException {
+        void passesNullFiltersToRepository() {
             when(playerRepository.findByFilters(null, null, null)).thenReturn(List.of());
 
             List<Player> result = playerService.getFilteredPlayers(null, null, null);
@@ -194,7 +188,7 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("convierte el mapa del scraper en Team con la liga correcta")
-        void mapsScrapedEntriesIntoTeamsWithCorrectLeague() throws IOException {
+        void mapsScrapedEntriesIntoTeamsWithCorrectLeague() {
             when(whoScoredScraperService.scrapeTeamUrls("La Liga")).thenReturn(
                 java.util.Map.of("Barcelona", "https://whoscored.com/barcelona")
             );
@@ -211,7 +205,7 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("persiste los equipos en el repositorio")
-        void persistsTeamsToRepository() throws IOException {
+        void persistsTeamsToRepository() {
             when(whoScoredScraperService.scrapeTeamUrls("La Liga")).thenReturn(
                 java.util.Map.of("Real Madrid", "https://whoscored.com/real-madrid")
             );
@@ -229,7 +223,7 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("devuelve lista vacía cuando el scraper no encuentra partidos")
-        void returnsEmptyListWhenNoMatchUrlsFound() throws IOException {
+        void returnsEmptyListWhenNoMatchUrlsFound() {
             when(whoScoredScraperService.scrapeLeagueMatchUrls("Serie A")).thenReturn(List.of());
 
             List<PlayerMatchStats> result = playerService.scrapeMatchStatsByMatchday("Serie A");
@@ -239,54 +233,12 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("no toca el repositorio cuando no hay partidos que procesar")
-        void doesNotInteractWithStatsRepositoryWhenNoMatchesFound() throws IOException {
+        void doesNotInteractWithStatsRepositoryWhenNoMatchesFound() {
             when(whoScoredScraperService.scrapeLeagueMatchUrls("Serie A")).thenReturn(List.of());
 
             playerService.scrapeMatchStatsByMatchday("Serie A");
 
             verifyNoInteractions(matchStatsRepository);
-        }
-
-        @Test
-        @DisplayName("procesa partidos, guarda estadisticas y confirma el temporal")
-        void processesMatchesAndCommitsTempFile() throws IOException {
-            File tempFile = File.createTempFile("match-stats", ".json");
-            tempFile.deleteOnExit();
-            List<PlayerMatchStats> stats = List.of(playerMatchStats("m1"));
-
-            when(whoScoredScraperService.scrapeLeagueMatchUrls("Serie A"))
-                .thenReturn(List.of("https://whoscored.com/matches/123/live"));
-            when(matchStatsRepository.getExistingMatchIds()).thenReturn(Set.of());
-            when(matchStatsRepository.createLeagueTempFile("Serie A")).thenReturn(tempFile);
-            when(whoScoredScraperService.scrapeMatchPlayerStats("https://whoscored.com/matches/123/live", Set.of()))
-                .thenReturn(stats);
-
-            playerService.scrapeMatchStatsByMatchday("Serie A");
-
-            verify(matchStatsRepository).appendToTemp(stats, tempFile);
-            verify(matchStatsRepository).commitAndDeleteTemp(tempFile);
-        }
-
-        @Test
-        @DisplayName("elimina el temporal si falla el procesamiento y el guardado parcial")
-        void deletesTempFileWhenProcessingAndPartialCommitFail() throws IOException {
-            File tempFile = File.createTempFile("match-stats-fail", ".json");
-            List<String> matchUrls = List.of("https://whoscored.com/matches/123/live");
-
-            when(whoScoredScraperService.scrapeLeagueMatchUrls("Serie A")).thenReturn(matchUrls);
-            when(matchStatsRepository.getExistingMatchIds()).thenReturn(Set.of());
-            when(matchStatsRepository.createLeagueTempFile("Serie A")).thenReturn(tempFile);
-            when(whoScoredScraperService.scrapeMatchPlayerStats(eq(matchUrls.get(0)), anySet()))
-                .thenThrow(new RuntimeException("scrape failed"));
-            doThrow(new IOException("commit failed"))
-                .when(matchStatsRepository).commitAndDeleteTemp(tempFile);
-
-            assertThatThrownBy(() -> playerService.scrapeMatchStatsByMatchday("Serie A"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("scrape failed");
-
-            verify(matchStatsRepository, never()).appendToTemp(any(), eq(tempFile));
-            assertThat(tempFile).doesNotExist();
         }
     }
 
@@ -296,33 +248,12 @@ class PlayerServiceTest {
 
         @Test
         @DisplayName("lanza excepción cuando no hay equipos registrados para la liga")
-        void throwsExceptionWhenNoTeamsRegisteredForLeague() throws IOException {
+        void throwsExceptionWhenNoTeamsRegisteredForLeague() {
             when(teamRepository.findByLeague("Ligue 1")).thenReturn(List.of());
 
             assertThatThrownBy(() -> playerService.scrapePlayersFromWhoScored("Ligue 1"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No hay equipos guardados para la liga: Ligue 1");
-        }
-
-        @Test
-        @DisplayName("consulta el scraper y persiste los jugadores obtenidos")
-        void scrapesAndPersistsPlayersWhenTeamsExist() throws IOException {
-            Team team = new Team("Liverpool", "https://whoscored.com/liverpool", "Premier League");
-            Player player = new Player();
-            player.setId("p1");
-            player.setName("Mohamed Salah");
-            player.setLeague("Premier League");
-            player.setTeam("Liverpool");
-            player.setPosition("ST");
-
-            when(teamRepository.findByLeague("Premier League")).thenReturn(List.of(team));
-            when(whoScoredScraperService.scrapePlayersFromTeams(List.of(team))).thenReturn(List.of(player));
-            when(playerRepository.savePlayersForLeague(eq("Premier League"), any())).thenReturn(true);
-
-            List<Player> result = playerService.scrapePlayersFromWhoScored("Premier League");
-
-            assertThat(result).containsExactly(player);
-            verify(playerRepository).savePlayersForLeague(eq("Premier League"), any());
         }
     }
 
@@ -332,11 +263,5 @@ class PlayerServiceTest {
         Player p = new Player();
         p.setLeague(league);
         return p;
-    }
-
-    private PlayerMatchStats playerMatchStats(String matchId) {
-        PlayerMatchStats stats = new PlayerMatchStats();
-        stats.setMatchId(matchId);
-        return stats;
     }
 }

@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -34,8 +33,6 @@ public class AdminController {
         this.playerService = playerService;
     }
 
-    // NOTE: endpoint POST /api/admin/scrape/players removed (deprecated)
-
     @PostMapping("/scrape/match-stats")
     @Operation(summary = "Scrapear estadísticas de jugadores de la última jornada (todas las ligas)",
                description = "Obtiene los partidos de la última jornada de cada liga y extrae stats de todos sus jugadores. Equivalente al job de lunes/viernes 03:00.")
@@ -43,8 +40,6 @@ public class AdminController {
         LEAGUES.forEach(scraperTrigger::triggerMatchStatsByMatchday);
         return ResponseEntity.accepted().body("Scraping por jornada iniciado en background para: " + LEAGUES);
     }
-
-    // NOTE: endpoint POST /api/admin/scrape/match-stats/legacy removed (deprecated)
 
     @GetMapping("/team-urls/{league}")
     @Operation(summary = "Obtener URLs de equipos desde WhoScored",
@@ -56,7 +51,7 @@ public class AdminController {
             return ResponseEntity.ok(teams);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error scrapeando equipos para liga {}: {}", league, e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }

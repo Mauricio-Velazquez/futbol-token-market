@@ -10,7 +10,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
-import java.io.IOException;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,7 +30,7 @@ class AdminPlayerStatsControllerTest {
 
     @Test
     @DisplayName("devuelve 200 con las estadisticas de liga")
-    void returnsLeagueStats() throws IOException {
+    void returnsLeagueStats() {
         List<LeagueStats> stats = List.of(new LeagueStats("La Liga", 3));
         when(playerService.getLeagueStats()).thenReturn(stats);
 
@@ -43,8 +42,8 @@ class AdminPlayerStatsControllerTest {
 
     @Test
     @DisplayName("devuelve 500 si el servicio falla")
-    void returnsInternalServerErrorWhenServiceFails() throws IOException {
-        when(playerService.getLeagueStats()).thenThrow(new IOException("boom"));
+    void returnsInternalServerErrorWhenServiceFails() {
+        when(playerService.getLeagueStats()).thenThrow(new RuntimeException("boom"));
 
         var result = controller.getLeagueStats();
 

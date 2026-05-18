@@ -1,12 +1,19 @@
 package com.futbol.tokenmarket.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+
+@Entity
 public class PlayerMatchStats {
 
+    @Id
     private String id;          // matchId + "_" + playerId
     private String matchId;
     private String playerId;
     private String matchUrl;
     private String opponent;
+    @Column(name = "match_date")
     private String date;
     private String position;
 
@@ -42,10 +49,7 @@ public class PlayerMatchStats {
     private Double crosses;
     private Double throughBalls;
 
-    // required by Jackson for deserialization
-    public PlayerMatchStats() {
-        // Constructor vacío necesario para la persistencia de datos (JPA)
-    }
+    public PlayerMatchStats() {}
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }

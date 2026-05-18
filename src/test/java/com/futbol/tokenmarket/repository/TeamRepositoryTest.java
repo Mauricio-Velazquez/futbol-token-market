@@ -1,31 +1,30 @@
 package com.futbol.tokenmarket.repository;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.futbol.tokenmarket.model.Team;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@DataJpaTest
+@Import(TeamRepository.class)
 @DisplayName("TeamRepository")
 class TeamRepositoryTest {
 
-    @TempDir
-    Path tempDir;
-
+    @Autowired
     private TeamRepository repository;
 
     @BeforeEach
     void setUp() {
-        String path = tempDir.resolve("teams.json").toAbsolutePath().toString();
-        repository = new TeamRepository(new ObjectMapper(), path);
+        repository.findAll().forEach(t ->
+            repository.saveTeamsForLeague(t.getLeague(), List.of()));
     }
 
     @Nested
@@ -34,7 +33,7 @@ class TeamRepositoryTest {
 
         @Test
         @DisplayName("devuelve sólo los equipos de la liga indicada")
-        void returnsOnlyTeamsFromThatLeague() throws IOException {
+        void returnsOnlyTeamsFromThatLeague() {
             repository.saveTeamsForLeague("La Liga", List.of(
                 team("Barcelona", "La Liga"),
                 team("Real Madrid", "La Liga")
@@ -51,7 +50,7 @@ class TeamRepositoryTest {
 
         @Test
         @DisplayName("la búsqueda por liga es case-insensitive")
-        void leagueFilterIsCaseInsensitive() throws IOException {
+        void leagueFilterIsCaseInsensitive() {
             repository.saveTeamsForLeague("Ligue 1", List.of(team("PSG", "Ligue 1")));
 
             List<Team> result = repository.findByLeague("ligue 1");
@@ -61,7 +60,7 @@ class TeamRepositoryTest {
 
         @Test
         @DisplayName("devuelve lista vacía cuando no hay equipos en esa liga")
-        void returnsEmptyWhenNoTeamsInLeague() throws IOException {
+        void returnsEmptyWhenNoTeamsInLeague() {
             List<Team> result = repository.findByLeague("Bundesliga");
 
             assertThat(result).isEmpty();
@@ -74,7 +73,7 @@ class TeamRepositoryTest {
 
         @Test
         @DisplayName("reemplaza los equipos de la liga sin afectar las otras ligas")
-        void replacesLeagueTeamsWithoutAffectingOthers() throws IOException {
+        void replacesLeagueTeamsWithoutAffectingOthers() {
             repository.saveTeamsForLeague("La Liga", List.of(team("Barça", "La Liga")));
             repository.saveTeamsForLeague("Premier League", List.of(team("Arsenal", "Premier League")));
 
@@ -88,7 +87,7 @@ class TeamRepositoryTest {
 
         @Test
         @DisplayName("devuelve los equipos que acaba de guardar")
-        void returnsSavedTeams() throws IOException {
+        void returnsSavedTeams() {
             List<Team> teams = List.of(team("Juventus", "Serie A"), team("Milan", "Serie A"));
 
             List<Team> result = repository.saveTeamsForLeague("Serie A", teams);
@@ -99,7 +98,7 @@ class TeamRepositoryTest {
 
         @Test
         @DisplayName("guardar lista vacía elimina todos los equipos de esa liga")
-        void savingEmptyListRemovesAllTeamsOfLeague() throws IOException {
+        void savingEmptyListRemovesAllTeamsOfLeague() {
             repository.saveTeamsForLeague("Serie A", List.of(team("Inter", "Serie A")));
 
             repository.saveTeamsForLeague("Serie A", List.of());

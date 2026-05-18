@@ -1,18 +1,25 @@
 package com.futbol.tokenmarket.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+
+@Entity
 public class Player {
 
+    @Id
     private String id;
     private String name;
     private String position;
-    private String team;
     private String league;
     private String url;
 
-    // required by Jackson for deserialization
-    public Player() {
-        // Constructor vacío necesario para la persistencia de datos (JPA)
-    }
+    @ManyToOne
+    @JoinColumn(name = "team_id")
+    private Team team;
+
+    public Player() {}
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -23,12 +30,12 @@ public class Player {
     public String getPosition() { return position; }
     public void setPosition(String position) { this.position = position; }
 
-    public String getTeam() { return team; }
-    public void setTeam(String team) { this.team = team; }
-
     public String getLeague() { return league; }
     public void setLeague(String league) { this.league = league; }
 
     public String getUrl() { return url; }
     public void setUrl(String url) { this.url = url; }
+
+    public Team getTeam() { return team; }
+    public void setTeam(Team team) { this.team = team; }
 }

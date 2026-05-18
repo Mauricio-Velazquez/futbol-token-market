@@ -12,7 +12,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.util.UUID;
 
 @Service
@@ -33,28 +32,23 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
     }
 
-    public AuthResponse register(RegisterRequest request) throws IOException {
-        // Validar que las contraseñas coincidan
+    public AuthResponse register(RegisterRequest request) {
         if (!request.getPassword().equals(request.getPasswordConfirm())) {
             throw new IllegalArgumentException("Las contraseñas no coinciden");
         }
 
-        // Verificar si el usuario ya existe
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new IllegalArgumentException("El nombre de usuario ya está en uso");
         }
 
-        // Crear nuevo usuario
         User newUser = new User(
             UUID.randomUUID().toString(),
             request.getUsername(),
             passwordEncoder.encode(request.getPassword())
         );
 
-        // Guardar usuario
         userRepository.save(newUser);
 
-        // Generar token
         String token = jwtUtil.generateToken(request.getUsername());
 
         return new AuthResponse(token, request.getUsername());
@@ -62,7 +56,6 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         try {
-            // Autenticar
             authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                     request.getUsername(),
@@ -70,7 +63,6 @@ public class AuthService {
                 )
             );
 
-            // Generar token
             String token = jwtUtil.generateToken(request.getUsername());
 
             return new AuthResponse(token, request.getUsername());

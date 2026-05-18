@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -40,7 +39,7 @@ public class PlayerController {
             @Parameter(description = "Filtrar por equipo", example = "Bayern Munich")
             @RequestParam(required = false) String team,
             @Parameter(description = "Filtrar por posición: GK, D, DM, M, AM, FW", example = "FW")
-            @RequestParam(required = false) String position) throws IOException {
+            @RequestParam(required = false) String position) {
         return ResponseEntity.ok(service.getFilteredPlayers(league, team, position));
     }
 
@@ -55,11 +54,9 @@ public class PlayerController {
     })
     public ResponseEntity<Player> getPlayerById(
             @Parameter(description = "ID del jugador", example = "ws_83532", required = true)
-            @PathVariable String id) throws IOException {
+            @PathVariable String id) {
         return service.getPlayerById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
-
-    // Other admin/scraping endpoints moved to AdminController; PlayerController exposes only public player endpoints.
 }

@@ -231,7 +231,7 @@ public class WhoScoredScraperService {
                     p.setUrl(parts[0].trim());
                     p.setName(parts[1].trim().replaceAll("^\\d+\\s*", "").trim());
                     p.setPosition(parts[2].trim());
-                    p.setTeam(team.getName());
+                    p.setTeam(team);
                     p.setLeague(team.getLeague());
                     players.add(p);
                 }

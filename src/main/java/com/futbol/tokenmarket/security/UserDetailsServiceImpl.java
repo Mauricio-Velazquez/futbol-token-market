@@ -7,8 +7,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 
@@ -27,7 +25,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                             .roles("USER")
                             .build())
                     .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-        } catch (IOException e) {
+        } catch (UsernameNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
             throw new UsernameNotFoundException("Error loading user: " + username, e);
         }
     }
