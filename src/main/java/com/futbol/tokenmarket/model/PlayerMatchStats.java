@@ -3,6 +3,7 @@ package com.futbol.tokenmarket.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Transient;
 
 @Entity
 public class PlayerMatchStats {
@@ -15,7 +16,8 @@ public class PlayerMatchStats {
     private String opponent;
     @Column(name = "match_date")
     private String date;
-    private String position;
+    @Transient
+    private String playerUrl;
 
     // Summary
     private Integer minutesPlayed;
@@ -34,13 +36,11 @@ public class PlayerMatchStats {
     private Double foulsCommitted;
     private Double clearances;
     private Double blockedShots;
-    private Double saves;
 
     // Offensive
     private Double shotsOnTarget;
     private Double keyPasses;
     private Double dribblesWon;
-    private Double foulsWon;
     private Double offsides;
 
     // Passing
@@ -69,8 +69,8 @@ public class PlayerMatchStats {
     public String getDate() { return date; }
     public void setDate(String date) { this.date = date; }
 
-    public String getPosition() { return position; }
-    public void setPosition(String position) { this.position = position; }
+    public String getPlayerUrl() { return playerUrl; }
+    public void setPlayerUrl(String playerUrl) { this.playerUrl = playerUrl; }
 
     public Integer getMinutesPlayed() { return minutesPlayed; }
     public void setMinutesPlayed(Integer minutesPlayed) { this.minutesPlayed = minutesPlayed; }
@@ -114,9 +114,6 @@ public class PlayerMatchStats {
     public Double getBlockedShots() { return blockedShots; }
     public void setBlockedShots(Double blockedShots) { this.blockedShots = blockedShots; }
 
-    public Double getSaves() { return saves; }
-    public void setSaves(Double saves) { this.saves = saves; }
-
     public Double getShotsOnTarget() { return shotsOnTarget; }
     public void setShotsOnTarget(Double shotsOnTarget) { this.shotsOnTarget = shotsOnTarget; }
 
@@ -125,9 +122,6 @@ public class PlayerMatchStats {
 
     public Double getDribblesWon() { return dribblesWon; }
     public void setDribblesWon(Double dribblesWon) { this.dribblesWon = dribblesWon; }
-
-    public Double getFoulsWon() { return foulsWon; }
-    public void setFoulsWon(Double foulsWon) { this.foulsWon = foulsWon; }
 
     public Double getOffsides() { return offsides; }
     public void setOffsides(Double offsides) { this.offsides = offsides; }

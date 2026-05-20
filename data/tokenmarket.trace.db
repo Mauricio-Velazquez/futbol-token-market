@@ -1,0 +1,56 @@
+2026-05-19 19:14:42.232906-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "player""team" no encontrada
+Table "player""team" not found; SQL statement:
+SELECT * FROM "player""team" [42102-232]
+2026-05-19 19:35:55.076805-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "player""player_match_stats" no encontrada
+Table "player""player_match_stats" not found; SQL statement:
+SELECT * FROM "player""player_match_stats" [42102-232]
+2026-05-19 19:51:13.894676-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "team""player_match_stats" no encontrada
+Table "team""player_match_stats" not found; SQL statement:
+SELECT * FROM "team""player_match_stats" [42102-232]
+2026-05-19 19:53:43.609495-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Error de Sintaxis en sentencia SQL "DELETE [*]* FROM ""player_match_stats"""; se esperaba "identifier"
+Syntax error in SQL statement "DELETE [*]* FROM ""player_match_stats"""; expected "identifier"; SQL statement:
+DELETE * FROM "player_match_stats" [42001-232]
+2026-05-19 21:32:18.175525-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "player_match_stats" no encontrada
+Table "player_match_stats" not found; SQL statement:
+SELECT * FROM "player_match_stats" [42102-232]
+2026-05-19 21:32:21.029803-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "player_match_stats" no encontrada
+Table "player_match_stats" not found; SQL statement:
+SELECT * FROM "player_match_stats" [42102-232]
+2026-05-19 22:28:32.463705-03:00 jdbc[24]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "player_match_stats" no encontrada
+Table "player_match_stats" not found; SQL statement:
+SELECT * FROM "player_match_stats" [42102-232]
+2026-05-19 23:07:13.212528-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "player_match_stats" no encontrada
+Table "player_match_stats" not found; SQL statement:
+SELECT * FROM "player_match_stats" [42102-232]
+2026-05-19 23:07:23.788302-03:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "player_match_stats" no encontrada
+Table "player_match_stats" not found; SQL statement:
+select distinct pms1_0."match_id" from "player_match_stats" pms1_0 [42102-232]
+2026-05-19 23:07:23.788302-03:00 jdbc[4]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "player_match_stats" no encontrada
+Table "player_match_stats" not found; SQL statement:
+select distinct pms1_0."match_id" from "player_match_stats" pms1_0 [42102-232]
+2026-05-19 23:07:24.134988-03:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "player_match_stats" no encontrada
+Table "player_match_stats" not found; SQL statement:
+select distinct pms1_0."match_id" from "player_match_stats" pms1_0 [42102-232]
+2026-05-19 23:07:24.619876-03:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "player_match_stats" no encontrada
+Table "player_match_stats" not found; SQL statement:
+select distinct pms1_0."match_id" from "player_match_stats" pms1_0 [42102-232]
+2026-05-19 23:07:38.337311-03:00 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "player_match_stats" no encontrada
+Table "player_match_stats" not found; SQL statement:
+select distinct pms1_0."match_id" from "player_match_stats" pms1_0 [42102-232]
+2026-05-19 23:08:14.215204-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "player_match_stats" no encontrada
+Table "player_match_stats" not found; SQL statement:
+SELECT * FROM "player_match_stats" [42102-232]

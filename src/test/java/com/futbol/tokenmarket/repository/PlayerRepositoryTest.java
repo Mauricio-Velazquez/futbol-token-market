@@ -210,6 +210,7 @@ class PlayerRepositoryTest {
             Optional<Player> found = repository.findById("p1");
             assertThat(found).isPresent();
             assertThat(found.get().getName()).isEqualTo("Messi");
+            assertThat(found.get().getTeamName()).isEqualTo("Inter Miami");
         }
 
         @Test
@@ -261,6 +262,8 @@ class PlayerRepositoryTest {
                 .extracting(Player::getName).containsExactly("Pedri");
             assertThat(repository.findByLeague("Premier League"))
                 .extracting(Player::getName).containsExactly("Haaland");
+            assertThat(repository.findById("p3")).get().extracting(Player::getTeamName)
+                .isEqualTo("Barcelona");
         }
     }
 
@@ -272,6 +275,7 @@ class PlayerRepositoryTest {
         p.setId(id);
         p.setName(name);
         p.setLeague(league);
+        p.setTeamName(teamName);
         p.setTeam(team);
         p.setPosition(position);
         return p;

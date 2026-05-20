@@ -217,6 +217,7 @@ class WhoScoredScraperServiceTest {
             Player player = players.get(0);
             assertThat(player.getName()).isEqualTo("Mohamed Salah");
             assertThat(player.getPosition()).isEqualTo("ST");
+            assertThat(player.getTeamName()).isEqualTo("Liverpool");
             assertThat(player.getTeam().getName()).isEqualTo("Liverpool");
             assertThat(player.getLeague()).isEqualTo("Premier League");
         }
@@ -389,7 +390,6 @@ class WhoScoredScraperServiceTest {
             assertThat(map).hasSize(1);
             PlayerMatchStats stats = map.values().iterator().next();
             assertThat(stats.getPlayerId()).startsWith("ws_");
-            assertThat(stats.getPosition()).isEqualTo("ST");
             assertThat(stats.getGoals()).isEqualTo(2.0);
             assertThat(stats.getOpponent()).isEqualTo("Away FC");
         }
@@ -747,32 +747,34 @@ class WhoScoredScraperServiceTest {
             String[] parts = new String[] {
                 "href",
                 "home",
-                "position=GK",
-                "goaltotal=1.0",
-                "assist=2",
+                "pos=GK",
+                "goals=1.0",
+                "assists=2",
                 "yellowcard=1",
-                "redcard=2",
+                "red_cards=2",
+                "pa=88.5",
                 "passsuccess=88.5",
                 "passsuccessinmatch=91.5",
                 "duelaerialwon=4",
                 "rating=7.8",
+                "tackles=4",
                 "tackletotalattempted=5",
                 "interceptionall=3",
-                "foulstotal=6",
+                "fouls_committed=6",
                 "clearancetotal=7",
                 "shotblocked=8",
-                "savetotal=9",
+                "save=9",
                 "shotsontarget=10",
                 "keypasstotal=11",
                 "dribblewon=12",
-                "foulstaken=13",
+                "fouls_won=13",
                 "offsidegiven=14",
                 "passtotal=15",
                 "longballtotal=16",
                 "crosstotal=17",
                 "throughballtotal=18",
                 "unknown=999",
-                "minsplayed=90"
+                "minutes_played=90"
             };
 
             java.lang.reflect.Method apply = WhoScoredScraperService.class
@@ -781,7 +783,6 @@ class WhoScoredScraperServiceTest {
 
             apply.invoke(service, s, parts, 2);
 
-            assertThat(s.getPosition()).isEqualTo("GK");
             assertThat(s.getGoals()).isEqualTo(1.0);
             assertThat(s.getAssists()).isEqualTo(2.0);
             assertThat(s.getYellowCards()).isEqualTo(1);
@@ -794,17 +795,39 @@ class WhoScoredScraperServiceTest {
             assertThat(s.getFoulsCommitted()).isEqualTo(6.0);
             assertThat(s.getClearances()).isEqualTo(7.0);
             assertThat(s.getBlockedShots()).isEqualTo(8.0);
-            assertThat(s.getSaves()).isEqualTo(9.0);
+            // saves removed from model — no assertion
             assertThat(s.getShotsOnTarget()).isEqualTo(10.0);
             assertThat(s.getKeyPasses()).isEqualTo(11.0);
             assertThat(s.getDribblesWon()).isEqualTo(12.0);
-            assertThat(s.getFoulsWon()).isEqualTo(13.0);
             assertThat(s.getOffsides()).isEqualTo(14.0);
             assertThat(s.getTotalPasses()).isEqualTo(15.0);
             assertThat(s.getLongBalls()).isEqualTo(16.0);
             assertThat(s.getCrosses()).isEqualTo(17.0);
             assertThat(s.getThroughBalls()).isEqualTo(18.0);
             assertThat(s.getMinutesPlayed()).isEqualTo(90);
+        }
+
+        @Test
+        @DisplayName("mapStat soporta aliases de live statistics para tackles, fouls y total passes")
+        void testMapStatLiveStatisticsAliases() throws Exception {
+            PlayerMatchStats s = new PlayerMatchStats();
+            String[] parts = new String[] {
+                "href",
+                "home",
+                "TackleWonTotal=3",
+                "FoulCommitted=2",
+                "TotalPasses=47"
+            };
+
+            java.lang.reflect.Method apply = WhoScoredScraperService.class
+                .getDeclaredMethod("applyStatPairs", PlayerMatchStats.class, String[].class, int.class);
+            apply.setAccessible(true);
+
+            apply.invoke(service, s, parts, 2);
+
+            assertThat(s.getTackles()).isEqualTo(3.0);
+            assertThat(s.getFoulsCommitted()).isEqualTo(2.0);
+            assertThat(s.getTotalPasses()).isEqualTo(47.0);
         }
 
         @Test
@@ -835,7 +858,6 @@ class WhoScoredScraperServiceTest {
             assertThat(map).hasSize(1);
             PlayerMatchStats stats = map.values().iterator().next();
             assertThat(stats.getPlayerId()).startsWith("ws_");
-            assertThat(stats.getPosition()).isEqualTo("ST");
             assertThat(stats.getGoals()).isEqualTo(2.0);
             assertThat(stats.getAssists()).isEqualTo(1.0);
             assertThat(stats.getMinutesPlayed()).isEqualTo(77);

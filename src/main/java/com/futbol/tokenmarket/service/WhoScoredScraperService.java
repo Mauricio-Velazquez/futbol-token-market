@@ -231,6 +231,7 @@ public class WhoScoredScraperService {
                     p.setUrl(parts[0].trim());
                     p.setName(parts[1].trim().replaceAll("^\\d+\\s*", "").trim());
                     p.setPosition(parts[2].trim());
+                    p.setTeamName(team.getName());
                     p.setTeam(team);
                     p.setLeague(team.getLeague());
                     players.add(p);
@@ -255,9 +256,82 @@ public class WhoScoredScraperService {
         "  if (!container) return [];" +
         "  var table = container.querySelector('table');" +
         "  if (!table) return [];" +
+        "  function appendDerivedStats(parts, row, cells) {" +
+        "    var firstCell = cells[0] || null;" +
+        "    var metaCells = firstCell ? firstCell.querySelectorAll('.player-meta-data') : [];" +
+        "    var position = '';" +
+        "    for (var j = metaCells.length - 1; j >= 0; j--) {" +
+        "      var txt = (metaCells[j] && metaCells[j].textContent) ? metaCells[j].textContent.trim().replace(/^,\\s*/, '') : '';" +
+        "      if (/^[A-Za-z]{1,3}$/.test(txt)) { position = txt; break; }" +
+        "    }" +
+        "    if (position) parts.push('position=' + position);" +
+        "    var rowText = firstCell ? firstCell.textContent.replace(/\\s+/g, ' ').trim() : '';" +
+        "    var minuteMatch = rowText.match(/\\((\\d+)/);" +
+        "    if (minuteMatch) {" +
+        "      var minute = parseInt(minuteMatch[1], 10);" +
+        "      if (!isNaN(minute)) {" +
+        "        var minutesPlayed = /\\bSub\\b/i.test(rowText) ? Math.max(0, 90 - minute) : minute;" +
+        "        parts.push('minsplayed=' + minutesPlayed);" +
+        "      }" +
+        "    }" +
+        "    var incidentIcons = row.querySelectorAll('.incident-wrapper .incident-icon');" +
+        "    var goals = 0;" +
+        "    var assists = 0;" +
+        "    var yellowCards = 0;" +
+        "    var redCards = 0;" +
+        "    incidentIcons.forEach(function(icon) {" +
+        "      var cardType = icon.getAttribute('data-card-type');" +
+        "      if (cardType === '31') yellowCards += 1;" +
+        "      if (cardType === '32' || cardType === '33' || cardType === '34') redCards += 1;" +
+        "      var hasGoal = icon.hasAttribute('data-event-satisfier-goalnormal') ||" +
+        "        icon.hasAttribute('data-event-satisfier-goalpenaltyarea') ||" +
+        "        icon.hasAttribute('data-event-satisfier-goalsetpiece') ||" +
+        "        icon.hasAttribute('data-event-satisfier-goalleftfoot') ||" +
+        "        icon.hasAttribute('data-event-satisfier-goalrightfoot') ||" +
+        "        icon.hasAttribute('data-event-satisfier-goaheadgoal') ||" +
+        "        icon.hasAttribute('data-event-satisfier-goalheader');" +
+        "      if (hasGoal) goals += 1;" +
+        "      var hasAssist = icon.hasAttribute('data-event-satisfier-assist') ||" +
+        "        icon.hasAttribute('data-event-satisfier-intentionalassist') ||" +
+        "        icon.hasAttribute('data-event-satisfier-assistother') ||" +
+        "        icon.hasAttribute('data-event-satisfier-passkey');" +
+        "      if (hasAssist) assists += 1;" +
+        "    });" +
+        "    if (goals > 0) parts.push('goaltotal=' + goals);" +
+        "    if (assists > 0) parts.push('assist=' + assists);" +
+        "    if (yellowCards > 0) parts.push('yellowcard=' + yellowCards);" +
+        "    if (redCards > 0) parts.push('redcard=' + redCards);" +
+        "  }" +
+        "  function inferStatKey(label) {" +
+        "    var normalized = (label || '').toLowerCase().replace(/[^a-z0-9]+/g, '');" +
+        "    switch (normalized) {" +
+        "      case 'position':" +
+        "      case 'pos': return 'position';" +
+        "      case 'minsplayed':" +
+        "      case 'minutesplayed':" +
+        "      case 'minplayed': return 'minsplayed';" +
+        "      case 'goal':" +
+        "      case 'goals': return 'goaltotal';" +
+        "      case 'assist':" +
+        "      case 'assists': return 'assist';" +
+        "      case 'redcard':" +
+        "      case 'redcards': return 'redcard';" +
+        "      case 'saves':" +
+        "      case 'save': return 'savetotal';" +
+        "      case 'foulstotal':" +
+        "      case 'foulstotals':" +
+        "      case 'foulscommitted':" +
+        "      case 'foulscommited': return 'foulstotal';" +
+        "      case 'foulstaken':" +
+        "      case 'fouled':" +
+        "      case 'foulgiven':" +
+        "      case 'foulswon': return 'foulstaken';" +
+        "      default: return normalized || null;" +
+        "    }" +
+        "  }" +
         "  var cols = Array.from(table.querySelectorAll('thead th')).map(function(th, i) {" +
         "    var s = th.getAttribute('data-stat-name');" +
-        "    if (!s && th.textContent.trim() === 'Position') s = 'position';" +
+        "    if (!s) s = inferStatKey(th.textContent.trim());" +
         "    return s ? {i: i, stat: s} : null;" +
         "  }).filter(Boolean);" +
         "  return Array.from(table.querySelectorAll('tbody tr')).map(function(row) {" +
@@ -268,6 +342,7 @@ public class WhoScoredScraperService {
         "    cols.forEach(function(c) {" +
         "      parts.push(c.stat + '=' + ((cells[c.i]||{}).textContent||'-').trim().replace(/\\s+/g,' '));" +
         "    });" +
+        "    appendDerivedStats(parts, row, cells);" +
         "    return parts.join('|||');" +
         "  }).filter(Boolean);" +
         "}";
@@ -278,20 +353,56 @@ public class WhoScoredScraperService {
         "  if (!container) return [];" +
         "  var table = container.querySelector('table');" +
         "  if (!table) return [];" +
+        "  function inferStatKey(label) {" +
+        "    var normalized = (label || '').toLowerCase().replace(/[^a-z0-9]+/g, '');" +
+        "    switch (normalized) {" +
+        "      case 'position':" +
+        "      case 'pos': return 'position';" +
+        "      case 'minsplayed':" +
+        "      case 'minutesplayed':" +
+        "      case 'minplayed': return 'minsplayed';" +
+        "      case 'goal':" +
+        "      case 'goals': return 'goaltotal';" +
+        "      case 'assist':" +
+        "      case 'assists': return 'assist';" +
+        "      case 'redcard':" +
+        "      case 'redcards': return 'redcard';" +
+        "      case 'saves':" +
+        "      case 'save': return 'savetotal';" +
+        "      case 'foulstotal':" +
+        "      case 'foulstotals':" +
+        "      case 'foulscommitted':" +
+        "      case 'foulscommited': return 'foulstotal';" +
+        "      case 'foulstaken':" +
+        "      case 'foulswon': return 'foulstaken';" +
+        "      case 'opponent':" +
+        "      case 'opp': return 'opponent';" +
+        "      default: return normalized || null;" +
+        "    }" +
+        "  }" +
         "  var ths = Array.from(table.querySelectorAll('thead th'));" +
         "  var cols = [];" +
+        "  var oppColIdx = -1;" +
         "  ths.forEach(function(th, i) {" +
         "    var stat = th.getAttribute('data-stat-name');" +
-        "    if (!stat && th.textContent.trim() === 'Position') stat = 'position';" +
-        "    if (stat) cols.push({i: i, stat: stat});" +
+        "    if (!stat) stat = inferStatKey(th.textContent.trim());" +
+        "    if (stat === 'opponent') { oppColIdx = i; }" +
+        "    if (stat && stat !== 'opponent') cols.push({i: i, stat: stat});" +
         "  });" +
         "  return Array.from(table.querySelectorAll('tbody tr')).map(function(row) {" +
         "    var link = row.querySelector('a.player-match-link');" +
         "    if (!link) return null;" +
         "    var cells = Array.from(row.querySelectorAll('td'));" +
-        "    var opp = Array.from(link.childNodes)" +
-        "      .filter(function(n){return n.nodeType===3;})" +
-        "      .map(function(n){return n.textContent.trim();}).join('');" +
+        "    var opp = '';" +
+        "    if (oppColIdx >= 0 && cells[oppColIdx]) {" +
+        "      opp = cells[oppColIdx].textContent.trim().replace(/\\s+/g,' ');" +
+        "    }" +
+        "    if (!opp || !opp.trim()) {" +
+        "      opp = Array.from(link.childNodes)" +
+        "        .filter(function(n){return n.nodeType===3;})" +
+        "        .map(function(n){return n.textContent.trim();}).join('');" +
+        "      if (!opp || !opp.trim()) opp = link.textContent.trim();" +
+        "    }" +
         "    var parts = [link.href, opp];" +
         "    cols.forEach(function(col) {" +
         "      var val = cells[col.i] ? cells[col.i].textContent.trim().replace(/\\s+/g,' ') : '-';" +
@@ -299,7 +410,7 @@ public class WhoScoredScraperService {
         "    });" +
         "    return parts.join('|||');" +
         "  }).filter(Boolean);" +
-        "}";
+        "}" ;
 
     public List<PlayerMatchStats> scrapePlayerMatchStats(
             Player player, Set<String> existingMatchIds) {
@@ -427,6 +538,15 @@ public class WhoScoredScraperService {
                 "  .find(function(d){ return /\\d{2}-[A-Za-z]{3}-\\d{2}/.test(d.textContent); });" +
                 "var homeEl = document.querySelector('[data-field=\"home\"] .team-name, [data-field=\"home\"] a.team-link');" +
                 "var awayEl = document.querySelector('[data-field=\"away\"] .team-name, [data-field=\"away\"] a.team-link');" +
+                "if ((!homeEl || !homeEl.textContent.trim()) || (!awayEl || !awayEl.textContent.trim())) {" +
+                "  var teamLinks = Array.from(document.querySelectorAll('a[href*=\"/teams/\"]')).map(function(a){ return a.textContent.trim(); }).filter(Boolean);" +
+                "  if (teamLinks.length >= 2) { homeEl = { textContent: teamLinks[0] }; awayEl = { textContent: teamLinks[1] }; }" +
+                "  else {" +
+                "    var headerHome = document.querySelector('.team.home .team-name, .team.home a.team-link');" +
+                "    var headerAway = document.querySelector('.team.away .team-name, .team.away a.team-link');" +
+                "    if (headerHome && headerAway) { homeEl = headerHome; awayEl = headerAway; }" +
+                "  }" +
+                "}" +
                 "return {" +
                 "  date:     dateEl ? dateEl.textContent.trim() : ''," +
                 "  homeTeam: homeEl ? homeEl.textContent.trim() : ''," +
@@ -453,6 +573,8 @@ public class WhoScoredScraperService {
             for (String[] ext : extractions) {
                 processExtraction(js, ext, matchInfo, byPlayerId);
             }
+
+            // saves column removed — no goalkeeper saves enrichment
 
             results.addAll(byPlayerId.values());
             log.info(MATCH_PREFIX + "{} - jugadores: {}", matchId, results.size());
@@ -520,12 +642,23 @@ public class WhoScoredScraperService {
                 stat.setMatchId(matchInfo.matchId);
                 stat.setPlayerId(pid);
                 stat.setMatchUrl(matchInfo.matchUrl);
+                stat.setPlayerUrl(playerHref);
                 stat.setDate(matchInfo.matchDate);
                 stat.setOpponent(opponent);
                 return stat;
             });
+            s.setPlayerUrl(playerHref);
             applyStatPairs(s, parts, 2);
         }
+    }
+
+    private void enrichGoalkeeperSaves(Map<String, PlayerMatchStats> byPlayerId) {
+        // previously attempted to fill goalkeeper saves by scraping individual player pages
+        // removed because `saves` column is not present consistently on WhoScored pages
+    }
+
+    private boolean isGoalkeeper(String position) {
+        return position != null && position.toUpperCase().contains("GK");
     }
 
     private void clickTab(WebDriver driver, WebDriverWait wait, JavascriptExecutor js,
@@ -599,35 +732,41 @@ public class WhoScoredScraperService {
     }
 
     private void mapStat(PlayerMatchStats s, String key, String val) {
-        switch (key.toLowerCase()) {
+        switch (normalizeStatKey(key)) {
             case "matchstarttime"                                  -> s.setDate(val);
-            case "position"                                        -> s.setPosition(val);
-            case "minsplayed"                                      -> trySetIntStat(s::setMinutesPlayed, val);
-            case "goaltotal"                                       -> trySetDoubleStat(s::setGoals, val);
-            case "assist"                                          -> trySetDoubleStat(s::setAssists, val);
+            // position removed from model
+            case "minsplayed", "minutesplayed", "minplayed"     -> trySetIntStat(s::setMinutesPlayed, val);
+            case "goaltotal", "goal", "goals"                   -> trySetDoubleStat(s::setGoals, val);
+            case "assist", "assists"                              -> trySetDoubleStat(s::setAssists, val);
             case "yellowcard"                                      -> trySetIntStat(s::setYellowCards, val);
-            case "redcard"                                         -> trySetIntStat(s::setRedCards, val);
+            case "redcard", "redcards"                            -> trySetIntStat(s::setRedCards, val);
             case "shotstotal"                                      -> trySetDoubleStat(s::setShots, val);
-            case "passsuccess", "passsuccessinmatch"               -> trySetDoubleStat(s::setPassSuccess, val);
+            case "passsuccess", "passsuccessinmatch", "pa", "passaccuracy", "passcompletion" -> trySetDoubleStat(s::setPassSuccess, val);
             case "duelaerialwon"                                   -> trySetDoubleStat(s::setAerialsWon, val);
             case "rating"                                          -> trySetDoubleStat(s::setRating, val);
-            case "tackletotal", "tackletotalattempted"             -> trySetDoubleStat(s::setTackles, val);
-            case "interceptionall"                                 -> trySetDoubleStat(s::setInterceptions, val);
-            case "foulstotal"                                      -> trySetDoubleStat(s::setFoulsCommitted, val);
-            case "clearancetotal"                                  -> trySetDoubleStat(s::setClearances, val);
-            case "shotblocked"                                     -> trySetDoubleStat(s::setBlockedShots, val);
-            case "savetotal", "saves"                              -> trySetDoubleStat(s::setSaves, val);
+            case "tackletotal", "tackletotalattempted", "totaltackles", "tackles", "tacklewontotal" ->
+                trySetDoubleStat(s::setTackles, val);
+            case "interceptionall", "interceptions"               -> trySetDoubleStat(s::setInterceptions, val);
+            case "foulstotal", "foulscommitted", "foulscommited", "foulcommitted", "fouls" ->
+                trySetDoubleStat(s::setFoulsCommitted, val);
+            case "clearancetotal", "clearances"                   -> trySetDoubleStat(s::setClearances, val);
+            case "shotblocked", "blockedshots"                    -> trySetDoubleStat(s::setBlockedShots, val);
+            // saves mapping removed — not persisted
             case "shotontarget", "shotsontarget"                   -> trySetDoubleStat(s::setShotsOnTarget, val);
             case "keypasstotal"                                    -> trySetDoubleStat(s::setKeyPasses, val);
             case "dribblewon"                                      -> trySetDoubleStat(s::setDribblesWon, val);
-            case "foulstaken"                                      -> trySetDoubleStat(s::setFoulsWon, val);
-            case "offsidegiven"                                    -> trySetDoubleStat(s::setOffsides, val);
-            case "passtotal"                                       -> trySetDoubleStat(s::setTotalPasses, val);
+            // foulsWon removed from model
+            case "offsidegiven", "offsides"                       -> trySetDoubleStat(s::setOffsides, val);
+            case "passtotal", "passes", "totalpasses"           -> trySetDoubleStat(s::setTotalPasses, val);
             case "passlongballtotal", "longballtotal"              -> trySetDoubleStat(s::setLongBalls, val);
             case "passcrosstotal", "crosstotal"                    -> trySetDoubleStat(s::setCrosses, val);
             case "passthroughballtotal", "throughballtotal"        -> trySetDoubleStat(s::setThroughBalls, val);
             default -> { /* unknown stat key, intentionally ignored */ }
         }
+    }
+
+    private String normalizeStatKey(String key) {
+        return key == null ? "" : key.toLowerCase().replaceAll("[^a-z0-9]", "");
     }
 
     private String extractMatchIdFromUrl(String href) {

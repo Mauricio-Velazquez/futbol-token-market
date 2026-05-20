@@ -1,5 +1,7 @@
 package com.futbol.tokenmarket.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -15,10 +17,15 @@ public class Player {
     private String league;
     private String url;
 
+    @Column(name = "team")
+    @JsonIgnore
+    private String teamName;
+
     @ManyToOne
     @JoinColumn(name = "team_id")
     private Team team;
 
+    // required by JPA and Jackson for deserialization
     public Player() {}
 
     public String getId() { return id; }
@@ -35,6 +42,9 @@ public class Player {
 
     public String getUrl() { return url; }
     public void setUrl(String url) { this.url = url; }
+
+    public String getTeamName() { return teamName; }
+    public void setTeamName(String teamName) { this.teamName = teamName; }
 
     public Team getTeam() { return team; }
     public void setTeam(Team team) { this.team = team; }

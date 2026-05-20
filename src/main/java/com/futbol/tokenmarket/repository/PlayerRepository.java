@@ -1,6 +1,7 @@
 package com.futbol.tokenmarket.repository;
 
 import com.futbol.tokenmarket.model.Player;
+import com.futbol.tokenmarket.model.Team;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
@@ -66,11 +67,13 @@ public class PlayerRepository {
 
     @Transactional
     public Player save(Player player) {
+        normalizeTeamName(player);
         return em.merge(player);
     }
 
     @Transactional
     public boolean saveAll(List<Player> players) {
+        players.forEach(this::normalizeTeamName);
         players.forEach(em::merge);
         return true;
     }
@@ -82,8 +85,16 @@ public class PlayerRepository {
             .executeUpdate();
         em.flush();
         em.clear();
+        players.forEach(this::normalizeTeamName);
         players.forEach(em::merge);
         return true;
+    }
+
+    private void normalizeTeamName(Player player) {
+        Team team = player.getTeam();
+        if (player.getTeamName() == null && team != null) {
+            player.setTeamName(team.getName());
+        }
     }
 
     @Transactional
