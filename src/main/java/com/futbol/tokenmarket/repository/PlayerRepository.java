@@ -80,11 +80,6 @@ public class PlayerRepository {
 
     @Transactional
     public synchronized boolean savePlayersForLeague(String league, List<Player> players) {
-        em.createQuery("DELETE FROM Player p WHERE LOWER(p.league) = LOWER(:league)")
-            .setParameter("league", league)
-            .executeUpdate();
-        em.flush();
-        em.clear();
         players.forEach(this::normalizeTeamName);
         players.forEach(em::merge);
         return true;

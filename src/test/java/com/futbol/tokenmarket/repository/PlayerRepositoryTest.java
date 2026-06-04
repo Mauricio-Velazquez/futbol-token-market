@@ -250,16 +250,19 @@ class PlayerRepositoryTest {
     class SavePlayersForLeague {
 
         @Test
-        @DisplayName("reemplaza todos los jugadores de la liga sin afectar otras ligas")
-        void replacesLeaguePlayersWithoutAffectingOtherLeagues() {
+        @DisplayName("agrega o actualiza jugadores sin borrar los existentes")
+        void upsertsPlayersWithoutDeletingExistingOnes() {
             repository.save(player("p1", "Haaland", "Premier League", "Man City", "FW"));
             repository.save(player("p2", "Messi", "La Liga", "Inter Miami", "FW"));
 
-            List<Player> newLaLiga = List.of(player("p3", "Pedri", "La Liga", "Barcelona", "M(C)"));
+            List<Player> newLaLiga = List.of(
+                player("p2", "Messi", "La Liga", "Inter Miami", "FW"),
+                player("p3", "Pedri", "La Liga", "Barcelona", "M(C)")
+            );
             repository.savePlayersForLeague("La Liga", newLaLiga);
 
             assertThat(repository.findByLeague("La Liga"))
-                .extracting(Player::getName).containsExactly("Pedri");
+                .extracting(Player::getName).containsExactlyInAnyOrder("Messi", "Pedri");
             assertThat(repository.findByLeague("Premier League"))
                 .extracting(Player::getName).containsExactly("Haaland");
             assertThat(repository.findById("p3")).get().extracting(Player::getTeamName)
