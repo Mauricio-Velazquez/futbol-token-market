@@ -29,6 +29,10 @@ public class ScraperTriggerService {
 
     @Async
     public void triggerMatchStatsByMatchday(String league) {
+        triggerMatchStatsByMatchdaySync(league);
+    }
+
+    public void triggerMatchStatsByMatchdaySync(String league) {
         log.info("[Scraper] Iniciando scraping por jornada: {}", league);
         try {
             playerService.scrapeMatchStatsByMatchday(league);

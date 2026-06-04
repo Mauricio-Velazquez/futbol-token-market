@@ -7,6 +7,9 @@ import com.futbol.tokenmarket.model.Team;
 import com.futbol.tokenmarket.repository.PlayerMatchStatsRepository;
 import com.futbol.tokenmarket.repository.PlayerRepository;
 import com.futbol.tokenmarket.repository.TeamRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -62,8 +65,24 @@ public class PlayerService {
         return repository.findByFilters(league, team, position);
     }
 
+    public Page<Player> getFilteredPlayers(String league, String team, String position, int page, int size) {
+        return slice(repository.findByFilters(league, team, position), page, size);
+    }
+
+    public Page<Player> getAllPlayers(int page, int size) {
+        return slice(repository.findAll(), page, size);
+    }
+
     public Optional<Player> getPlayerById(String id) {
         return repository.findById(id);
+    }
+
+    private Page<Player> slice(List<Player> players, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(size, 1);
+        int fromIndex = Math.min(safePage * safeSize, players.size());
+        int toIndex = Math.min(fromIndex + safeSize, players.size());
+        return new PageImpl<>(players.subList(fromIndex, toIndex), PageRequest.of(safePage, safeSize), players.size());
     }
 
     public List<Team> scrapeTeamUrls(String leagueName) {
