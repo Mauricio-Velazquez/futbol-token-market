@@ -155,7 +155,6 @@ class PlayerRepositoryTest {
             assertThat(result).extracting(Player::getName).containsExactly("Messi");
         }
     }
-
     @Nested
     @DisplayName("findByFilters — combinaciones")
     class FindByFiltersCombinations {

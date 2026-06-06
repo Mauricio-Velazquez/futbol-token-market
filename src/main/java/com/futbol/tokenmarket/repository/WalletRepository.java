@@ -1,6 +1,7 @@
 package com.futbol.tokenmarket.repository;
 
 import com.futbol.tokenmarket.model.User;
+import com.futbol.tokenmarket.model.Wallet;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
@@ -9,28 +10,22 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
-
-
 @Repository
-public class UserRepository {
+public class WalletRepository {
 
     @PersistenceContext
     private EntityManager em;
 
-    public Optional<User> findById(String id) {
-        return Optional.ofNullable(em.find(User.class, id));
-    }
-
-    public Optional<User> findByUsername(String username) {
-        List<User> results = em.createQuery(
-                "SELECT u FROM User u WHERE u.username = :username", User.class)
-            .setParameter("username", username)
+    public Optional<Wallet> findByUser(User user) {
+        List<Wallet> results = em.createQuery(
+                "SELECT w FROM Wallet w WHERE w.user = :user", Wallet.class)
+            .setParameter("user", user)
             .getResultList();
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
     @Transactional
-    public User save(User user) {
-        return em.merge(user);
+    public Wallet save(Wallet wallet) {
+        return em.merge(wallet);
     }
 }

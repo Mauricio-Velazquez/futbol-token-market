@@ -108,6 +108,14 @@ public class QuoteService {
             .orElse(QuoteStrategy.BALANCED);
     }
 
+    public BigDecimal getLatestPriceForPlayer(String playerId) {
+        List<PlayerQuote> quotes = quoteRepository.findByPlayerIdOrderByCalculatedAtDesc(playerId);
+        if (quotes.isEmpty()) {
+            return BigDecimal.valueOf(BASE_VALUE);
+        }
+        return BigDecimal.valueOf(quotes.get(0).getValue());
+    }
+
     private List<PlayerQuote> latestQuotesForStrategy(QuoteStrategy strategy) {
         Map<String, PlayerQuote> latestByPlayerId = new HashMap<>();
         for (PlayerQuote quote : quoteRepository.findByStrategyOrderByCalculatedAtDesc(strategy)) {
