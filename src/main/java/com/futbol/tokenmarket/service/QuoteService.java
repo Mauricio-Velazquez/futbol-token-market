@@ -386,11 +386,13 @@ public class QuoteService {
     }
 
     private double normalizeRating(double value) {
-        return Math.max(0.0, Math.min(10.0, value)) / 2.0;
+        double limited = Math.max(0.0, Math.min(10.0, value));
+        return limited - 6.5;
     }
 
     private double normalizePercent(double value) {
-        return Math.max(0.0, Math.min(100.0, value)) / 20.0;
+        double limited = Math.max(0.0, Math.min(100.0, value)) / 20.0;
+        return limited - 3.5; 
     }
 
     private double round(double value, int scale) {
