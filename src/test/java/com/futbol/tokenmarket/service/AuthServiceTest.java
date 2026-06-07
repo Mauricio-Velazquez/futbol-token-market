@@ -5,6 +5,7 @@ import com.futbol.tokenmarket.dto.LoginRequest;
 import com.futbol.tokenmarket.dto.RegisterRequest;
 import com.futbol.tokenmarket.model.User;
 import com.futbol.tokenmarket.repository.UserRepository;
+import com.futbol.tokenmarket.repository.WalletRepository;
 import com.futbol.tokenmarket.security.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +33,7 @@ import static org.mockito.Mockito.*;
 class AuthServiceTest {
 
     @Mock private UserRepository userRepository;
+    @Mock private WalletRepository walletRepository;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private AuthenticationManager authenticationManager;
     @Mock private JwtUtil jwtUtil;
@@ -40,7 +42,7 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, authenticationManager, jwtUtil);
+        authService = new AuthService(userRepository, walletRepository, passwordEncoder, authenticationManager, jwtUtil);
     }
 
     @Nested

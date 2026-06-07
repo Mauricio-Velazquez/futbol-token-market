@@ -7,6 +7,9 @@ import com.futbol.tokenmarket.model.Team;
 import com.futbol.tokenmarket.repository.PlayerMatchStatsRepository;
 import com.futbol.tokenmarket.repository.PlayerRepository;
 import com.futbol.tokenmarket.repository.TeamRepository;
+import com.futbol.tokenmarket.repository.TokenHoldingRepository;
+import com.futbol.tokenmarket.repository.UserRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,6 +37,8 @@ class PlayerServiceTest {
     @Mock private TeamRepository teamRepository;
     @Mock private PlayerMatchStatsRepository matchStatsRepository;
     @Mock private WhoScoredScraperService whoScoredScraperService;
+    @Mock private TokenHoldingRepository tokenHoldingRepository; 
+    @Mock private UserRepository userRepository;                 
 
     private PlayerService playerService;
 
@@ -41,7 +46,7 @@ class PlayerServiceTest {
     void setUp() {
         playerService = new PlayerService(
             playerRepository, teamRepository, matchStatsRepository,
-            whoScoredScraperService
+            whoScoredScraperService, tokenHoldingRepository, userRepository
         );
     }
 
