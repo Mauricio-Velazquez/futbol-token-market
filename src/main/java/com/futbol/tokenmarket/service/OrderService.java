@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -150,8 +151,32 @@ public class OrderService {
                 h.getPlayer().getId(),
                 h.getPlayer().getName(),
                 h.getQuantity(),
-                quoteService.getLatestPriceForPlayer(h.getPlayer().getId())))
+                quoteService.getLatestPriceForPlayer(h.getPlayer().getId()),
+                computeAvgBuyPrice(user, h.getPlayer())))
             .toList();
+    }
+
+    private BigDecimal computeAvgBuyPrice(User user, Player player) {
+        List<Transaction> txs = transactionRepository
+            .findByUserAndPlayerOrderByCreatedAtAsc(user, player);
+        BigDecimal avg = BigDecimal.ZERO;
+        BigDecimal qty = BigDecimal.ZERO;
+        for (Transaction tx : txs) {
+            BigDecimal txQty = BigDecimal.valueOf(tx.getQuantity());
+            if (tx.getType() == TransactionType.BUY) {
+                BigDecimal newQty = qty.add(txQty);
+                avg = avg.multiply(qty)
+                    .add(tx.getPricePerToken().multiply(txQty))
+                    .divide(newQty, 2, RoundingMode.HALF_UP);
+                qty = newQty;
+            } else {
+                qty = qty.subtract(txQty);
+                if (qty.compareTo(BigDecimal.ZERO) == 0) {
+                    avg = BigDecimal.ZERO;
+                }
+            }
+        }
+        return avg;
     }
 
     public List<TransactionResponse> getTransactions(String userId) {

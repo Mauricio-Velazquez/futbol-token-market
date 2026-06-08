@@ -33,11 +33,15 @@ public class AdminController {
     private final ScraperTriggerService scraperTrigger;
     private final PlayerService playerService;
     private final QuoteService quoteService;
+    private final com.futbol.tokenmarket.service.DataSeederService dataSeederService;
 
-    public AdminController(ScraperTriggerService scraperTrigger, PlayerService playerService, QuoteService quoteService) {
+    public AdminController(ScraperTriggerService scraperTrigger, PlayerService playerService,
+                           QuoteService quoteService,
+                           com.futbol.tokenmarket.service.DataSeederService dataSeederService) {
         this.scraperTrigger = scraperTrigger;
         this.playerService = playerService;
         this.quoteService = quoteService;
+        this.dataSeederService = dataSeederService;
     }
 
     @PostMapping("/scrape/match-stats")
@@ -71,6 +75,17 @@ public class AdminController {
             @org.springframework.web.bind.annotation.PathVariable String league) {
         scraperTrigger.triggerPlayersScrape(league);
         return ResponseEntity.accepted().body("Scraping de jugadores iniciado en background para " + league);
+    }
+
+    @PostMapping("/seed")
+    @Operation(summary = "Generar datos de prueba",
+               description = "Crea 37 usuarios simulados con diferentes perfiles de inversión (acumulador, coleccionista, diversificado, estrella, mini, random). Requiere que existan jugadores y cotizaciones. Es idempotente: los usuarios que ya existen se saltean.")
+    public ResponseEntity<String> seedData() {
+        int created = dataSeederService.seed();
+        if (created == 0) {
+            return ResponseEntity.ok("No se crearon usuarios (ya existen o no hay jugadores cargados)");
+        }
+        return ResponseEntity.ok(created + " usuarios de prueba creados exitosamente");
     }
 
     @PostMapping("/quotes/recalculate")

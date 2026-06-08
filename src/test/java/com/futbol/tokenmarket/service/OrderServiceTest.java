@@ -354,14 +354,76 @@ class OrderServiceTest {
             playerB.setId("player-2");
             playerB.setName("Cristiano Ronaldo");
             TokenHolding withoutTokens = new TokenHolding(playerB, user, 0);
+            Transaction buyTx = new Transaction(user, player, TransactionType.BUY, 5,
+                    BigDecimal.valueOf(50.0), java.time.LocalDateTime.now());
             when(userRepository.findById("user-id")).thenReturn(Optional.of(user));
             when(tokenHoldingRepository.findByOwner(user)).thenReturn(List.of(withTokens, withoutTokens));
             when(quoteService.getLatestPriceForPlayer(PLAYER_ID)).thenReturn(BigDecimal.valueOf(50.0));
+            when(transactionRepository.findByUserAndPlayerOrderByCreatedAtAsc(user, player)).thenReturn(List.of(buyTx));
 
             List<PortfolioEntryResponse> portfolio = orderService.getPortfolio("user-id");
 
             assertThat(portfolio).hasSize(1);
             assertThat(portfolio.get(0).getPlayerId()).isEqualTo(PLAYER_ID);
+        }
+
+        @Test
+        @DisplayName("calcula precio promedio de compra correctamente")
+        void computesCorrectAvgBuyPrice() {
+            TokenHolding holding = new TokenHolding(player, user, 10);
+            Transaction buy1 = new Transaction(user, player, TransactionType.BUY, 5,
+                    BigDecimal.valueOf(40.0), java.time.LocalDateTime.now().minusDays(2));
+            Transaction buy2 = new Transaction(user, player, TransactionType.BUY, 5,
+                    BigDecimal.valueOf(60.0), java.time.LocalDateTime.now().minusDays(1));
+            when(userRepository.findById("user-id")).thenReturn(Optional.of(user));
+            when(tokenHoldingRepository.findByOwner(user)).thenReturn(List.of(holding));
+            when(quoteService.getLatestPriceForPlayer(PLAYER_ID)).thenReturn(BigDecimal.valueOf(70.0));
+            when(transactionRepository.findByUserAndPlayerOrderByCreatedAtAsc(user, player))
+                    .thenReturn(List.of(buy1, buy2));
+
+            List<PortfolioEntryResponse> portfolio = orderService.getPortfolio("user-id");
+
+            assertThat(portfolio.get(0).getAvgBuyPrice()).isEqualByComparingTo(BigDecimal.valueOf(50.0));
+        }
+
+        @Test
+        @DisplayName("calcula ganancia y porcentaje de ganancia correctamente")
+        void computesCorrectProfitLoss() {
+            TokenHolding holding = new TokenHolding(player, user, 10);
+            Transaction buyTx = new Transaction(user, player, TransactionType.BUY, 10,
+                    BigDecimal.valueOf(50.0), java.time.LocalDateTime.now().minusDays(1));
+            when(userRepository.findById("user-id")).thenReturn(Optional.of(user));
+            when(tokenHoldingRepository.findByOwner(user)).thenReturn(List.of(holding));
+            when(quoteService.getLatestPriceForPlayer(PLAYER_ID)).thenReturn(BigDecimal.valueOf(70.0));
+            when(transactionRepository.findByUserAndPlayerOrderByCreatedAtAsc(user, player))
+                    .thenReturn(List.of(buyTx));
+
+            List<PortfolioEntryResponse> portfolio = orderService.getPortfolio("user-id");
+            PortfolioEntryResponse entry = portfolio.get(0);
+
+            assertThat(entry.getGain()).isEqualByComparingTo(BigDecimal.valueOf(200.0));
+            assertThat(entry.getGainPercent()).isEqualByComparingTo(BigDecimal.valueOf(40.0));
+        }
+
+        @Test
+        @DisplayName("resetea el precio promedio si el usuario vendió todos los tokens y volvió a comprar")
+        void resetsAvgPriceAfterSellingAll() {
+            TokenHolding holding = new TokenHolding(player, user, 5);
+            Transaction buy1 = new Transaction(user, player, TransactionType.BUY, 5,
+                    BigDecimal.valueOf(40.0), java.time.LocalDateTime.now().minusDays(3));
+            Transaction sell = new Transaction(user, player, TransactionType.SELL, 5,
+                    BigDecimal.valueOf(60.0), java.time.LocalDateTime.now().minusDays(2));
+            Transaction buy2 = new Transaction(user, player, TransactionType.BUY, 5,
+                    BigDecimal.valueOf(80.0), java.time.LocalDateTime.now().minusDays(1));
+            when(userRepository.findById("user-id")).thenReturn(Optional.of(user));
+            when(tokenHoldingRepository.findByOwner(user)).thenReturn(List.of(holding));
+            when(quoteService.getLatestPriceForPlayer(PLAYER_ID)).thenReturn(BigDecimal.valueOf(90.0));
+            when(transactionRepository.findByUserAndPlayerOrderByCreatedAtAsc(user, player))
+                    .thenReturn(List.of(buy1, sell, buy2));
+
+            List<PortfolioEntryResponse> portfolio = orderService.getPortfolio("user-id");
+
+            assertThat(portfolio.get(0).getAvgBuyPrice()).isEqualByComparingTo(BigDecimal.valueOf(80.0));
         }
 
         @Test

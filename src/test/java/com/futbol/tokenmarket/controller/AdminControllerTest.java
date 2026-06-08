@@ -2,6 +2,7 @@ package com.futbol.tokenmarket.controller;
 
 import com.futbol.tokenmarket.model.PlayerQuote;
 import com.futbol.tokenmarket.model.Team;
+import com.futbol.tokenmarket.service.DataSeederService;
 import com.futbol.tokenmarket.service.PlayerService;
 import com.futbol.tokenmarket.service.QuoteService;
 import com.futbol.tokenmarket.service.ScraperTriggerService;
@@ -28,12 +29,13 @@ class AdminControllerTest {
     @Mock private ScraperTriggerService scraperTriggerService;
     @Mock private PlayerService playerService;
     @Mock private QuoteService quoteService;
+    @Mock private DataSeederService dataSeederService;
 
     private AdminController adminController;
 
     @BeforeEach
     void setUp() {
-        adminController = new AdminController(scraperTriggerService, playerService, quoteService);
+        adminController = new AdminController(scraperTriggerService, playerService, quoteService, dataSeederService);
     }
 
     @Nested
