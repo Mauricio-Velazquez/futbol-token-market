@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -87,8 +88,16 @@ public class QuoteService {
         return slice(ordered, page, size);
     }
 
-    public Page<PlayerQuote> getPlayerQuoteHistory(String playerId, int page, int size) {
-        return slice(quoteRepository.findByPlayerIdOrderByCalculatedAtDesc(playerId), page, size);
+    public Page<PlayerQuote> getPlayerQuoteHistory(String playerId, LocalDate from, LocalDate to, int page, int size) {
+        List<PlayerQuote> quotes;
+        if (from != null || to != null) {
+            LocalDateTime fromDt = from != null ? from.atStartOfDay() : LocalDateTime.MIN;
+            LocalDateTime toDt = to != null ? to.atTime(23, 59, 59) : LocalDateTime.MAX;
+            quotes = quoteRepository.findByPlayerIdAndDateRange(playerId, fromDt, toDt);
+        } else {
+            quotes = quoteRepository.findByPlayerIdOrderByCalculatedAtDesc(playerId);
+        }
+        return slice(quotes, page, size);
     }
 
     public Page<PlayerQuote> getRanking(int page, int size) {

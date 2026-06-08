@@ -12,8 +12,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/players")
@@ -80,9 +83,13 @@ public class PlayerController {
             @Parameter(description = "Número de página", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Tamaño de página", example = "10")
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Fecha de inicio del filtro (inclusive), formato yyyy-MM-dd", example = "2025-01-01")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @Parameter(description = "Fecha de fin del filtro (inclusive), formato yyyy-MM-dd", example = "2025-12-31")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         return service.getPlayerById(id)
-            .map(player -> ResponseEntity.ok(quoteService.getPlayerQuoteHistory(player.getId(), page, size)))
+            .map(player -> ResponseEntity.ok(quoteService.getPlayerQuoteHistory(player.getId(), from, to, page, size)))
             .orElse(ResponseEntity.notFound().build());
     }
 

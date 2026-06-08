@@ -7,6 +7,7 @@ import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -28,6 +29,16 @@ public class PlayerQuoteRepository {
                 "SELECT q FROM PlayerQuote q WHERE q.strategy = :strategy ORDER BY q.calculatedAt DESC, q.id DESC",
                 PlayerQuote.class)
             .setParameter("strategy", strategy)
+            .getResultList();
+    }
+
+    public List<PlayerQuote> findByPlayerIdAndDateRange(String playerId, LocalDateTime from, LocalDateTime to) {
+        return em.createQuery(
+                "SELECT q FROM PlayerQuote q WHERE q.player.id = :playerId AND q.calculatedAt >= :from AND q.calculatedAt <= :to ORDER BY q.calculatedAt DESC, q.id DESC",
+                PlayerQuote.class)
+            .setParameter("playerId", playerId)
+            .setParameter("from", from)
+            .setParameter("to", to)
             .getResultList();
     }
 
