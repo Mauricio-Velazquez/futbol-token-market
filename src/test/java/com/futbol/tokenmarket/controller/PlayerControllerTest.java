@@ -9,12 +9,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.Tag;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@Tag("unit")
 @DisplayName("Controlador de jugadores")
 class PlayerControllerTest {
 
@@ -95,9 +98,9 @@ class PlayerControllerTest {
             PlayerQuote quote = new PlayerQuote();
             quote.setValue(123.0);
             when(playerService.getPlayerById("ws_3")).thenReturn(Optional.of(player));
-            when(quoteService.getPlayerQuoteHistory("ws_3", 0, 10)).thenReturn(new PageImpl<>(List.of(quote)));
+            when(quoteService.getPlayerQuoteHistory("ws_3", null, null, 0, 10)).thenReturn(new PageImpl<>(List.of(quote)));
 
-            var result = playerController.getPlayerQuotes("ws_3", 0, 10);
+            var result = playerController.getPlayerQuotes("ws_3", 0, 10, null, null);
 
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(result.getBody()).isNotNull();

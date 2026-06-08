@@ -39,8 +39,21 @@ dependencies {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        includeTags 'unit'
+    }
     finalizedBy tasks.named('jacocoTestReport')
+}
+
+tasks.register('testE2e', Test) {
+    description = 'Ejecuta los tests de integración/e2e (carga contexto Spring)'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'e2e'
+    }
+    finalizedBy tasks.named('jacocoE2eReport')
 }
 
 jacoco {
@@ -57,13 +70,28 @@ tasks.named('jacocoTestReport', JacocoReport) {
     }
 }
 
+tasks.register('jacocoE2eReport', JacocoReport) {
+    dependsOn tasks.named('testE2e')
+    executionData layout.buildDirectory.file('jacoco/testE2e.exec')
+    sourceSets sourceSets.main
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+}
+
 tasks.named('sonarqube') {
     dependsOn tasks.named('jacocoTestReport')
+    dependsOn tasks.named('jacocoE2eReport')
 }
 
 sonarqube {
     properties {
-        property 'sonar.coverage.jacoco.xmlReportPaths', layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml').get().asFile.absolutePath
+        property 'sonar.coverage.jacoco.xmlReportPaths',
+            [layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml').get().asFile.absolutePath,
+             layout.buildDirectory.file('reports/jacoco/testE2e/jacocoE2eReport.xml').get().asFile.absolutePath].join(',')
         property 'sonar.exclusions', 'build/**,bin/**'
         property 'sonar.coverage.exclusions', 'src/main/java/com/futbol/tokenmarket/dto/**,src/main/java/com/futbol/tokenmarket/exception/**'
     }
