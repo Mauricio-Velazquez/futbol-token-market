@@ -100,27 +100,6 @@ tasks.register('jacocoE2eReport', JacocoReport) {
     }))
 }
 
-tasks.named('sonarqube') {
-    dependsOn tasks.named('jacocoTestReport')
-    dependsOn tasks.named('jacocoE2eReport')
-}
-
-sonarqube {
-    properties {
-        property 'sonar.coverage.jacoco.xmlReportPaths',
-            [layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml').get().asFile.absolutePath,
-             layout.buildDirectory.file('reports/jacoco/testE2e/jacocoE2eReport.xml').get().asFile.absolutePath].join(',')
-        property 'sonar.exclusions', 'build/**,bin/**'
-        
-        property 'sonar.coverage.exclusions', [
-            'src/main/java/com/futbol/tokenmarket/dto/**',
-            'src/main/java/com/futbol/tokenmarket/exception/**',
-            'src/main/java/com/futbol/tokenmarket/config/**',     
-            'src/main/java/com/futbol/tokenmarket/security/**' 
-        ].join(',')
-    }
-}
-
 tasks.register('jacocoRootReport', JacocoReport) {
     description = 'Genera un reporte de JaCoCo unificado con Unitarios y E2E'
     group = 'verification'
@@ -144,4 +123,24 @@ tasks.register('jacocoRootReport', JacocoReport) {
             'com/futbol/tokenmarket/security/**'
         ])
     }))
+}
+
+tasks.named('sonar') {
+    dependsOn tasks.named('jacocoRootReport')
+}
+
+sonarqube {
+    properties {
+        property 'sonar.coverage.jacoco.xmlReportPaths', 
+            layout.buildDirectory.file('reports/jacoco/jacocoRootReport/jacocoRootReport.xml').get().asFile.absolutePath
+        
+        property 'sonar.exclusions', 'build/**,bin/**'
+        
+        property 'sonar.coverage.exclusions', [
+            'src/main/java/com/futbol/tokenmarket/dto/**',
+            'src/main/java/com/futbol/tokenmarket/exception/**',
+            'src/main/java/com/futbol/tokenmarket/config/**',     
+            'src/main/java/com/futbol/tokenmarket/security/**' 
+        ].join(',')
+    }
 }

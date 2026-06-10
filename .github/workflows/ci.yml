@@ -35,15 +35,17 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Run Tests and SonarCloud Analysis
+      - name: Run Tests and Generate Consolidated Coverage
+        run: ./gradlew clean jacocoRootReport
+
+      - name: Run SonarCloud Analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
           SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
         run: |
-          ./gradlew clean test testE2e jacocoTestReport jacocoRootReport sonar \
+          ./gradlew sonar \
             -Dsonar.token="$SONAR_TOKEN" \
             -Dsonar.projectKey="$SONAR_PROJECT_KEY" \
             -Dsonar.organization="$SONAR_ORGANIZATION" \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.branch.name=${{ github.ref_name }}
+            -Dsonar.host.url=https://sonarcloud.io
