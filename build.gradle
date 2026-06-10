@@ -68,6 +68,15 @@ tasks.named('jacocoTestReport', JacocoReport) {
         html.required = true
         csv.required = false
     }
+
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: [
+            'com/futbol/tokenmarket/dto/**',
+            'com/futbol/tokenmarket/exception/**',
+            'com/futbol/tokenmarket/config/**',
+            'com/futbol/tokenmarket/security/**'
+        ])
+    }))
 }
 
 tasks.register('jacocoE2eReport', JacocoReport) {
@@ -80,6 +89,15 @@ tasks.register('jacocoE2eReport', JacocoReport) {
         html.required = true
         csv.required = false
     }
+
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: [
+            'com/futbol/tokenmarket/dto/**',
+            'com/futbol/tokenmarket/exception/**',
+            'com/futbol/tokenmarket/config/**',
+            'com/futbol/tokenmarket/security/**'
+        ])
+    }))
 }
 
 tasks.named('sonarqube') {
@@ -93,6 +111,37 @@ sonarqube {
             [layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml').get().asFile.absolutePath,
              layout.buildDirectory.file('reports/jacoco/testE2e/jacocoE2eReport.xml').get().asFile.absolutePath].join(',')
         property 'sonar.exclusions', 'build/**,bin/**'
-        property 'sonar.coverage.exclusions', 'src/main/java/com/futbol/tokenmarket/dto/**,src/main/java/com/futbol/tokenmarket/exception/**'
+        
+        property 'sonar.coverage.exclusions', [
+            'src/main/java/com/futbol/tokenmarket/dto/**',
+            'src/main/java/com/futbol/tokenmarket/exception/**',
+            'src/main/java/com/futbol/tokenmarket/config/**',     
+            'src/main/java/com/futbol/tokenmarket/security/**' 
+        ].join(',')
     }
+}
+
+tasks.register('jacocoRootReport', JacocoReport) {
+    description = 'Genera un reporte de JaCoCo unificado con Unitarios y E2E'
+    group = 'verification'
+
+    dependsOn tasks.named('test'), tasks.named('testE2e'), tasks.named('compileJava'), tasks.named('processResources')
+
+    executionData fileTree(dir: layout.buildDirectory.dir('jacoco'), include: ['*.exec'])
+    
+    sourceSets sourceSets.main
+
+    reports {
+        xml.required = true
+        html.required = true 
+    }
+
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: [
+            'com/futbol/tokenmarket/dto/**',
+            'com/futbol/tokenmarket/exception/**',
+            'com/futbol/tokenmarket/config/**',
+            'com/futbol/tokenmarket/security/**'
+        ])
+    }))
 }
