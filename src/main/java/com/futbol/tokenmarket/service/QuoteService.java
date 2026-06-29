@@ -39,15 +39,18 @@ public class QuoteService {
     private final PlayerMatchStatsRepository matchStatsRepository;
     private final PlayerQuoteRepository quoteRepository;
     private final QuoteSettingsRepository settingsRepository;
+    private final RankingCacheService rankingCacheService;
 
     public QuoteService(PlayerRepository playerRepository,
                         PlayerMatchStatsRepository matchStatsRepository,
                         PlayerQuoteRepository quoteRepository,
-                        QuoteSettingsRepository settingsRepository) {
+                        QuoteSettingsRepository settingsRepository,
+                        RankingCacheService rankingCacheService) {
         this.playerRepository = playerRepository;
         this.matchStatsRepository = matchStatsRepository;
         this.quoteRepository = quoteRepository;
         this.settingsRepository = settingsRepository;
+        this.rankingCacheService = rankingCacheService;
     }
 
     @Transactional
@@ -79,6 +82,7 @@ public class QuoteService {
             quoteRepository.saveAll(quotesToPersist);
         }
         persistActiveStrategy(strategy, recalculatedAt);
+        rankingCacheService.evictAll();
 
         List<PlayerQuote> ordered = quotes.stream()
             .sorted(Comparator.comparing(PlayerQuote::getValue, Comparator.reverseOrder())
@@ -102,13 +106,7 @@ public class QuoteService {
 
     public Page<PlayerQuote> getRanking(int page, int size) {
         QuoteStrategy strategy = getActiveStrategy();
-        List<PlayerQuote> latestByPlayer = latestQuotesForStrategy(strategy);
-        List<PlayerQuote> ordered = latestByPlayer.stream()
-            .sorted(Comparator.comparing(PlayerQuote::getValue, Comparator.reverseOrder())
-                .thenComparing(PlayerQuote::getCalculatedAt, Comparator.reverseOrder())
-                .thenComparing(quote -> quote.getPlayer() != null ? quote.getPlayer().getId() : ""))
-            .toList();
-        return slice(ordered, page, size);
+        return slice(rankingCacheService.getSortedRanking(strategy), page, size);
     }
 
     public QuoteStrategy getActiveStrategy() {

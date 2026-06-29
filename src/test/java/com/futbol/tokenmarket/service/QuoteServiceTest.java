@@ -42,12 +42,13 @@ class QuoteServiceTest {
     @Mock private PlayerMatchStatsRepository matchStatsRepository;
     @Mock private PlayerQuoteRepository quoteRepository;
     @Mock private QuoteSettingsRepository settingsRepository;
+    @Mock private RankingCacheService rankingCacheService;
 
     private QuoteService quoteService;
 
     @BeforeEach
     void setUp() {
-        quoteService = new QuoteService(playerRepository, matchStatsRepository, quoteRepository, settingsRepository);
+        quoteService = new QuoteService(playerRepository, matchStatsRepository, quoteRepository, settingsRepository, rankingCacheService);
     }
 
     @Nested
@@ -194,14 +195,11 @@ class QuoteServiceTest {
             Player p1 = new Player(); p1.setId("p1");
             Player p2 = new Player(); p2.setId("p2");
 
-            // Objetos idénticos para obligar a la lambda de ordenamiento a evaluar las líneas secundarias de ID
             PlayerQuote q1 = quoteWithValue(200.0); q1.setPlayer(p1); q1.setCalculatedAt(ahora);
             PlayerQuote q2 = quoteWithValue(200.0); q2.setPlayer(p2); q2.setCalculatedAt(ahora);
-
-            // Una cotización sin jugador asignado para romper flujos de nulidad controlados si existieran
             PlayerQuote qNull = quoteWithValue(100.0);
 
-            when(quoteRepository.findByStrategyOrderByCalculatedAtDesc(QuoteStrategy.BALANCED))
+            when(rankingCacheService.getSortedRanking(QuoteStrategy.BALANCED))
                     .thenReturn(List.of(q1, q2, qNull));
 
             Page<PlayerQuote> res = quoteService.getRanking(0, 10);
