@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.Tag;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -63,7 +64,8 @@ class OrderServiceTest {
     @BeforeEach
     void setUp() {
         orderService = new OrderService(userRepository, playerRepository,
-                tokenHoldingRepository, walletRepository, transactionRepository, quoteService);
+                tokenHoldingRepository, walletRepository, transactionRepository, quoteService,
+                new SimpleMeterRegistry());
 
         user = new User("user-id", USERNAME, "hash");
         sistema = new User("sistema-id", SISTEMA, "hash");

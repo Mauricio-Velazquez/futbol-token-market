@@ -15,6 +15,8 @@ import com.futbol.tokenmarket.repository.TokenHoldingRepository;
 import com.futbol.tokenmarket.repository.TransactionRepository;
 import com.futbol.tokenmarket.repository.UserRepository;
 import com.futbol.tokenmarket.repository.WalletRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,19 +34,30 @@ public class OrderService {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final QuoteService quoteService;
+    private final Counter buyCounter;
+    private final Counter sellCounter;
 
     public OrderService(UserRepository userRepository,
                         PlayerRepository playerRepository,
                         TokenHoldingRepository tokenHoldingRepository,
                         WalletRepository walletRepository,
                         TransactionRepository transactionRepository,
-                        QuoteService quoteService) {
+                        QuoteService quoteService,
+                        MeterRegistry registry) {
         this.userRepository = userRepository;
         this.playerRepository = playerRepository;
         this.tokenHoldingRepository = tokenHoldingRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.quoteService = quoteService;
+        this.buyCounter = Counter.builder("market.orders.processed")
+                .tag("type", "BUY")
+                .description("Total de órdenes de compra procesadas")
+                .register(registry);
+        this.sellCounter = Counter.builder("market.orders.processed")
+                .tag("type", "SELL")
+                .description("Total de órdenes de venta procesadas")
+                .register(registry);
     }
 
     @Transactional
@@ -91,6 +104,7 @@ public class OrderService {
 
         transactionRepository.save(new Transaction(user, player, TransactionType.BUY,
                 request.getQuantity(), price, LocalDateTime.now()));
+        buyCounter.increment();
 
         return new OrderResponse("BUY", player.getId(), player.getName(),
                 request.getQuantity(), price, totalCost, wallet.getBalance());
@@ -136,6 +150,7 @@ public class OrderService {
 
         transactionRepository.save(new Transaction(user, player, TransactionType.SELL,
                 request.getQuantity(), price, LocalDateTime.now()));
+        sellCounter.increment();
 
         return new OrderResponse("SELL", player.getId(), player.getName(),
                 request.getQuantity(), price, totalProceeds, wallet.getBalance());
