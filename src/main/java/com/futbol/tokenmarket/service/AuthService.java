@@ -4,7 +4,9 @@ import com.futbol.tokenmarket.dto.LoginRequest;
 import com.futbol.tokenmarket.dto.RegisterRequest;
 import com.futbol.tokenmarket.dto.AuthResponse;
 import com.futbol.tokenmarket.model.User;
+import com.futbol.tokenmarket.model.Wallet;
 import com.futbol.tokenmarket.repository.UserRepository;
+import com.futbol.tokenmarket.repository.WalletRepository;
 import com.futbol.tokenmarket.security.JwtUtil;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,15 +20,18 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final WalletRepository walletRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
     public AuthService(UserRepository userRepository,
+                      WalletRepository walletRepository,
                       PasswordEncoder passwordEncoder,
                       AuthenticationManager authenticationManager,
                       JwtUtil jwtUtil) {
         this.userRepository = userRepository;
+        this.walletRepository = walletRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
@@ -48,6 +53,7 @@ public class AuthService {
         );
 
         userRepository.save(newUser);
+        walletRepository.save(new Wallet(newUser));
 
         String token = jwtUtil.generateToken(request.getUsername());
 

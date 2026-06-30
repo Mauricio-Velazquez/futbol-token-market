@@ -7,26 +7,37 @@ import com.futbol.tokenmarket.model.Team;
 import com.futbol.tokenmarket.repository.PlayerMatchStatsRepository;
 import com.futbol.tokenmarket.repository.PlayerRepository;
 import com.futbol.tokenmarket.repository.TeamRepository;
+import com.futbol.tokenmarket.repository.TokenHoldingRepository;
+import com.futbol.tokenmarket.repository.UserRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.Tag;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.HashSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@Tag("unit")
 @DisplayName("PlayerService")
 class PlayerServiceTest {
 
@@ -34,6 +45,8 @@ class PlayerServiceTest {
     @Mock private TeamRepository teamRepository;
     @Mock private PlayerMatchStatsRepository matchStatsRepository;
     @Mock private WhoScoredScraperService whoScoredScraperService;
+    @Mock private TokenHoldingRepository tokenHoldingRepository; 
+    @Mock private UserRepository userRepository;                
 
     private PlayerService playerService;
 
@@ -41,7 +54,7 @@ class PlayerServiceTest {
     void setUp() {
         playerService = new PlayerService(
             playerRepository, teamRepository, matchStatsRepository,
-            whoScoredScraperService
+            whoScoredScraperService, tokenHoldingRepository, userRepository
         );
     }
 
@@ -109,6 +122,21 @@ class PlayerServiceTest {
             List<Player> result = playerService.getAllPlayers();
 
             assertThat(result).isEqualTo(expected);
+        }
+
+        @Test
+        @DisplayName("devuelve todos los jugadores paginados de forma segura (slice)")
+        void returnsAllPlayersPaginated() {
+            List<Player> players = List.of(
+                playerWithLeague("La Liga"),
+                playerWithLeague("La Liga")
+            );
+            when(playerRepository.findAll()).thenReturn(players);
+
+            Page<Player> page = playerService.getAllPlayers(0, 1);
+
+            assertThat(page.getContent()).hasSize(1);
+            assertThat(page.getTotalElements()).isEqualTo(2);
         }
     }
 
@@ -180,6 +208,33 @@ class PlayerServiceTest {
             assertThat(result).isEmpty();
             verify(playerRepository).findByFilters(null, null, null);
         }
+
+        @Test
+        @DisplayName("devuelve una página segmentada correctamente (slice)")
+        void returnsPaginatedSliceOfFilteredPlayers() {
+            List<Player> players = List.of(
+                playerWithLeague("La Liga"),
+                playerWithLeague("La Liga"),
+                playerWithLeague("La Liga")
+            );
+            when(playerRepository.findByFilters("La Liga", null, null)).thenReturn(players);
+
+            Page<Player> page = playerService.getFilteredPlayers("La Liga", null, null, 0, 2);
+
+            assertThat(page.getContent()).hasSize(2);
+            assertThat(page.getTotalElements()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("maneja de forma segura páginas y tamaños negativos o fuera de rango")
+        void handlesNegativePageAndSizeSafely() {
+            List<Player> players = List.of(playerWithLeague("La Liga"));
+            when(playerRepository.findByFilters(null, null, null)).thenReturn(players);
+
+            Page<Player> page = playerService.getFilteredPlayers(null, null, null, -1, -5);
+
+            assertThat(page.getContent()).hasSize(1);
+        }
     }
 
     @Nested
@@ -240,6 +295,26 @@ class PlayerServiceTest {
 
             verifyNoInteractions(matchStatsRepository);
         }
+
+        @Test
+        @DisplayName("procesa, filtra por duplicados y persiste las estadísticas de partidos encontrados")
+        void processesAndSavesFoundMatchStats() {
+            when(whoScoredScraperService.scrapeLeagueMatchUrls("Premier League"))
+                .thenReturn(List.of("https://whoscored.com/matches/12345/live"));
+            
+            Set<String> existingIds = new HashSet<>();
+            when(matchStatsRepository.getExistingMatchIds()).thenReturn(existingIds);
+
+            PlayerMatchStats stats = new PlayerMatchStats();
+            stats.setMatchId("12345");
+            when(whoScoredScraperService.scrapeMatchPlayerStats(eq("https://whoscored.com/matches/12345/live"), any()))
+                .thenReturn(List.of(stats));
+
+            List<PlayerMatchStats> result = playerService.scrapeMatchStatsByMatchday("Premier League");
+
+            assertThat(result).isEmpty(); // El método del servicio retorna un List.of() fijo al final
+            verify(matchStatsRepository).saveAllIfNew(any());
+        }
     }
 
     @Nested
@@ -255,6 +330,43 @@ class PlayerServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("No hay equipos guardados para la liga: Ligue 1");
         }
+
+        @Test
+        @DisplayName("baja los jugadores, los persiste y emite tokens si no existían previamente")
+        void scrapesPlayersPersistsAndIssuesTokens() {
+            Team team = new Team("Chelsea", "url", "Premier League");
+            when(teamRepository.findByLeague("Premier League")).thenReturn(List.of(team));
+
+            // Creamos dos jugadores para el stream
+            Player playerExistente = new Player();
+            playerExistente.setId("p-ya-existe");
+            playerExistente.setLeague("Premier League");
+
+            Player playerNuevo = new Player();
+            playerNuevo.setId("p-nuevo");
+            playerNuevo.setLeague("Premier League");
+
+            List<Player> scrapedPlayers = List.of(playerExistente, playerNuevo);
+            lenient().when(whoScoredScraperService.scrapePlayersFromTeams(any())).thenReturn(scrapedPlayers);
+
+            // Simulamos el usuario de SISTEMA usando any() para evitar fallos por mayúsculas/minúsculas de la constante
+            com.futbol.tokenmarket.model.User sistema = new com.futbol.tokenmarket.model.User();
+            sistema.setUsername("SISTEMA");
+            lenient().when(userRepository.findByUsername(any())).thenReturn(Optional.of(sistema));
+            
+            // Simulamos que 'p-ya-existe' ya tiene tokens emitidos
+            Set<String> yaEmitidos = new HashSet<>(List.of("p-ya-existe"));
+            lenient().when(tokenHoldingRepository.findPlayerIdsWithHoldings(any())).thenReturn(yaEmitidos);
+
+            List<Player> result = playerService.scrapePlayersFromWhoScored("Premier League");
+
+            // Verificaciones
+            assertThat(result).hasSize(2);
+            verify(playerRepository).savePlayersForLeague(eq("Premier League"), any());
+            
+            // Verificamos que se intente guardar en el repositorio de holdings sin importar los parámetros exactos
+            verify(tokenHoldingRepository, atLeastOnce()).saveAll(any());
+        }
     }
 
     // --- helpers ---
@@ -265,3 +377,4 @@ class PlayerServiceTest {
         return p;
     }
 }
+

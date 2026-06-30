@@ -9,11 +9,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+
+
 @Repository
 public class UserRepository {
 
     @PersistenceContext
     private EntityManager em;
+
+    public Optional<User> findById(String id) {
+        return Optional.ofNullable(em.find(User.class, id));
+    }
 
     public Optional<User> findByUsername(String username) {
         List<User> results = em.createQuery(

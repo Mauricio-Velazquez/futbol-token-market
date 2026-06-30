@@ -4,9 +4,16 @@ import com.futbol.tokenmarket.model.LeagueStats;
 import com.futbol.tokenmarket.model.Player;
 import com.futbol.tokenmarket.model.PlayerMatchStats;
 import com.futbol.tokenmarket.model.Team;
+import com.futbol.tokenmarket.model.TokenHolding;
+import com.futbol.tokenmarket.model.User;
 import com.futbol.tokenmarket.repository.PlayerMatchStatsRepository;
 import com.futbol.tokenmarket.repository.PlayerRepository;
 import com.futbol.tokenmarket.repository.TeamRepository;
+import com.futbol.tokenmarket.repository.TokenHoldingRepository;
+import com.futbol.tokenmarket.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -28,15 +35,21 @@ public class PlayerService {
     private final TeamRepository teamRepository;
     private final PlayerMatchStatsRepository matchStatsRepository;
     private final WhoScoredScraperService whoScoredScraperService;
+    private final TokenHoldingRepository tokenHoldingRepository;
+    private final UserRepository userRepository;
 
     public PlayerService(PlayerRepository repository,
                          TeamRepository teamRepository,
                          PlayerMatchStatsRepository matchStatsRepository,
-                         WhoScoredScraperService whoScoredScraperService) {
+                         WhoScoredScraperService whoScoredScraperService,
+                         TokenHoldingRepository tokenHoldingRepository,
+                         UserRepository userRepository) {
         this.repository = repository;
         this.teamRepository = teamRepository;
         this.matchStatsRepository = matchStatsRepository;
         this.whoScoredScraperService = whoScoredScraperService;
+        this.tokenHoldingRepository = tokenHoldingRepository;
+        this.userRepository = userRepository;
     }
 
     public List<LeagueStats> getLeagueStats() {
@@ -62,8 +75,24 @@ public class PlayerService {
         return repository.findByFilters(league, team, position);
     }
 
+    public Page<Player> getFilteredPlayers(String league, String team, String position, int page, int size) {
+        return slice(repository.findByFilters(league, team, position), page, size);
+    }
+
+    public Page<Player> getAllPlayers(int page, int size) {
+        return slice(repository.findAll(), page, size);
+    }
+
     public Optional<Player> getPlayerById(String id) {
         return repository.findById(id);
+    }
+
+    private Page<Player> slice(List<Player> players, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(size, 1);
+        int fromIndex = Math.min(safePage * safeSize, players.size());
+        int toIndex = Math.min(fromIndex + safeSize, players.size());
+        return new PageImpl<>(players.subList(fromIndex, toIndex), PageRequest.of(safePage, safeSize), players.size());
     }
 
     public List<Team> scrapeTeamUrls(String leagueName) {
@@ -113,7 +142,25 @@ public class PlayerService {
         List<Player> players = whoScoredScraperService.scrapePlayersFromTeams(teams);
         if (!players.isEmpty()) {
             repository.savePlayersForLeague(leagueName, players);
+            issueTokensForNewPlayers(players);
         }
         return players;
+    }
+
+    private void issueTokensForNewPlayers(List<Player> players) {
+        userRepository.findByUsername(SystemInitializationService.SISTEMA_USERNAME).ifPresent(sistema -> {
+            List<String> playerIds = players.stream().map(Player::getId).toList();
+            Set<String> alreadyIssued = tokenHoldingRepository.findPlayerIdsWithHoldings(playerIds);
+
+            List<TokenHolding> newHoldings = players.stream()
+                    .filter(p -> !alreadyIssued.contains(p.getId()))
+                    .map(p -> new TokenHolding(p, sistema, TokenHolding.TOKENS_PER_PLAYER))
+                    .collect(Collectors.toList());
+
+            if (!newHoldings.isEmpty()) {
+                tokenHoldingRepository.saveAll(newHoldings);
+                log.info(LOG_PREFIX + "{} tokens emitidos para jugadores nuevos de {}", newHoldings.size(), newHoldings.get(0).getPlayer().getLeague());
+            }
+        });
     }
 }

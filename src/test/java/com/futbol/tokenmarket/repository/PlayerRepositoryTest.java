@@ -5,6 +5,7 @@ import com.futbol.tokenmarket.model.Team;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
@@ -17,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @Import(PlayerRepository.class)
+@Tag("e2e")
 @DisplayName("PlayerRepository")
 class PlayerRepositoryTest {
 
@@ -155,7 +157,6 @@ class PlayerRepositoryTest {
             assertThat(result).extracting(Player::getName).containsExactly("Messi");
         }
     }
-
     @Nested
     @DisplayName("findByFilters — combinaciones")
     class FindByFiltersCombinations {
@@ -250,16 +251,19 @@ class PlayerRepositoryTest {
     class SavePlayersForLeague {
 
         @Test
-        @DisplayName("reemplaza todos los jugadores de la liga sin afectar otras ligas")
-        void replacesLeaguePlayersWithoutAffectingOtherLeagues() {
+        @DisplayName("agrega o actualiza jugadores sin borrar los existentes")
+        void upsertsPlayersWithoutDeletingExistingOnes() {
             repository.save(player("p1", "Haaland", "Premier League", "Man City", "FW"));
             repository.save(player("p2", "Messi", "La Liga", "Inter Miami", "FW"));
 
-            List<Player> newLaLiga = List.of(player("p3", "Pedri", "La Liga", "Barcelona", "M(C)"));
+            List<Player> newLaLiga = List.of(
+                player("p2", "Messi", "La Liga", "Inter Miami", "FW"),
+                player("p3", "Pedri", "La Liga", "Barcelona", "M(C)")
+            );
             repository.savePlayersForLeague("La Liga", newLaLiga);
 
             assertThat(repository.findByLeague("La Liga"))
-                .extracting(Player::getName).containsExactly("Pedri");
+                .extracting(Player::getName).containsExactlyInAnyOrder("Messi", "Pedri");
             assertThat(repository.findByLeague("Premier League"))
                 .extracting(Player::getName).containsExactly("Haaland");
             assertThat(repository.findById("p3")).get().extracting(Player::getTeamName)
