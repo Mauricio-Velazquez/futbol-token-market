@@ -1,0 +1,29 @@
+---------------------------------------------------------------------
+TAG ENTREGA 3.0
+---------------------------------------------------------------------
+NEW FEATURES (lo que están entregando y está funcionando):
+* Monitorización completa con Spring Boot Actuator y Micrometer:
+    - Exposición de métricas en /actuator/prometheus.
+    - Instrumentación personalizada en MarketMetricsService (4 Gauges para mercado y precios).
+    - Instrumentación personalizada en OrderService (2 Counters para volumen de transacciones).
+    - Health Check personalizado (TokenMarketHealthIndicator) para monitoreo de disco/H2.
+    - Endpoints de management habilitados: health, info, prometheus, metrics, loggers, beans, etc.
+* Sistema de Cache distribuido in-memory con Caffeine:
+    - Integración mediante Spring Cache (@Cacheable, @CacheEvict).
+    - Optimización de rendimiento en RankingCacheService: cache por estrategia con TTL de 2 horas.
+    - Evicción automática tras persistencia en QuoteService.
+* Auditoría y Logs personalizados:
+    - Configuración avanzada de logback-spring.xml con separación de logs (Consola vs AUDIT_FILE).
+    - Implementación de AuditAspect para registro centralizado de auditoría en logs/audit.log.
+* Test de Arquitectura (ArchUnit):
+    - Creación de ./gradlew testArch para validación de capas.
+    - Implementación de 10 reglas de arquitectura: capas restringidas, nomenclaturas, prohibición de System.out/err y detección de dependencias cíclicas.
+
+NOTES (ej: funcionalidad que falta, alguna consideración especial):
+* El sistema de cache Caffeine es in-memory; si la instancia de la aplicación se reinicia, el cache se regenera automáticamente en la primera consulta.
+* Los errores de sincronización en el IDE se resuelven forzando un Gradle Sync o reiniciando el Language Server.
+* Se puede cambiar el nivel de log en tiempo real vía POST a /actuator/loggers/{package}.
+
+KNOWN ISSUES (ej: funcionalidad que saben que están funcionando diferente, algún error conocido):
+* Durante el primer acceso tras un evictAll() o reinicio, la respuesta tendrá una latencia mayor debido a la recarga de datos desde la DB (comportamiento esperado del sistema de cache).
+* Los tests de arquitectura excluyen clases internas (inner classes) por diseño para evitar falsos positivos en el escaneo de servicios.
